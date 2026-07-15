@@ -1,0 +1,22 @@
+{
+  "name": "tteschon-agent-skills",
+  "owner": {
+    "name": "Tyler Teschon"
+  },
+  "metadata": {
+    "description": "A collection of reusable AI agent skills",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "fun-skills",
+      "source": "./plugins/fun-skills",
+      "description": "Fun and creative agent skills"
+    },
+    {
+      "name": "work-skills",
+      "source": "./plugins/work-skills",
+      "description": "Productivity and work-focused agent skills"
+    }
+  ]
+}
