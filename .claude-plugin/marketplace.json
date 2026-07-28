@@ -22,7 +22,9 @@
       "description": "Productivity and work-focused agent skills",
       "source": "./",
       "strict": false,
-      "skills": []
+      "skills": [
+        "./skills/new-python-project"
+      ]
     }
   ]
 }
