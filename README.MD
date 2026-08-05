@@ -1,6 +1,6 @@
 > **Note:** This is a public repository to share some of my AI agent skills.
 
-[![skills.sh](https://skills.sh/b/tteschon/skills)](https://skills.sh/tteschon/skills)
+[![Install the tteschon skills pack from skills.sh](https://img.shields.io/badge/skills.sh-install%20pack-000000?logo=vercel&logoColor=white)](https://www.skills.sh/p/k9F32rDgRDOqfsd3)
 
 # Skills
 > Skills are reusable capabilities for AI agents. They provide procedural knowledge that helps agents accomplish specific tasks more effectively. Skills can include code generation patterns, domain expertise, tool integrations, and more.
