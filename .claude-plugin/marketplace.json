@@ -10,21 +10,13 @@
   "plugins": [
     {
       "name": "fun-skills",
-      "description": "Fun and creative agent skills",
-      "source": "./",
-      "strict": false,
-      "skills": [
-        "./skills/chompsaw-project-designer"
-      ]
+      "source": "./plugins/fun-skills",
+      "category": "creative"
     },
     {
       "name": "work-skills",
-      "description": "Productivity and work-focused agent skills",
-      "source": "./",
-      "strict": false,
-      "skills": [
-        "./skills/new-python-project"
-      ]
+      "source": "./plugins/work-skills",
+      "category": "development"
     }
   ]
 }

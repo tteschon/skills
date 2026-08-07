@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "fun-skills",
+  "version": "1.0.0",
+  "description": "Fun and creative agent skills",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["chompsaw", "cardboard", "maker", "patterns"]
+}

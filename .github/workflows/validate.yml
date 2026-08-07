@@ -1,0 +1,29 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Validate manifests against the Agent Plugins 1.0 schema
+        run: >
+          uvx check-jsonschema
+          --schemafile https://agent-plugins.org/schemas/1.0.0/plugin.schema.json
+          plugins/*/plugin.json
+
+      - name: Validate skills against the Agent Skills specification
+        run: |
+          for skill in plugins/*/skills/*; do
+            uv run --no-project --with skills-ref==0.1.1 \
+              python -m skills_ref.cli validate "$skill"
+          done
+
+      - name: Validate native manifests, marketplaces, and skills
+        run: python3 scripts/validate.py

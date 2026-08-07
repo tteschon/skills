@@ -1,6 +1,7 @@
 ---
 name: chompsaw-project-designer
 description: Design ChompSaw cardboard projects and generate actual-size printable pattern PDFs (US Letter 8.5"x11" or Legal 8.5"x14"). Use this skill whenever the user mentions the ChompSaw, Chompshop, cardboard project designs, printable cutouts/patterns/templates for cardboard builds, or asks to design a cardboard toy, model, or structure they will cut out - even if they don't say "pattern" or "PDF" explicitly. Also use it when updating or resizing a previously generated ChompSaw pattern.
+compatibility: Requires Python 3 with ReportLab and Poppler's pdftoppm for PDF generation and visual verification.
 ---
 
 # ChompSaw Project Designer
@@ -56,7 +57,9 @@ Never silently scale a part down - true size is the whole point.
 
 ## Step 3 - Write the build guide
 
-Create a markdown guide in `/mnt/user-data/outputs/` with: a one-line pitch,
+Choose a writable output directory. Prefer the agent platform's artifact or
+output directory when it provides one; otherwise create `outputs/` in the
+current workspace. Store the markdown guide there with: a one-line pitch,
 difficulty and build time, materials, ChompSaw tools used, a parts table
 (letter codes A, B, C... matching the PDF), numbered cutting steps with
 technique tips (rotation for curves, punch-then-feed for interior holes),
@@ -67,11 +70,18 @@ troubleshooting. Remind users that all cutting happens before any gluing.
 
 Use the bundled library - don't rewrite the drawing primitives:
 
+Before running it, confirm the active Python environment can import `reportlab`
+and that `pdftoppm` is available. If either dependency is missing, use the
+platform's dependency environment or ask before installing them.
+
 ```python
 import sys; sys.path.insert(0, "<this skill's scripts/ directory>")
+from pathlib import Path
 from pattern_pdf import PatternDoc
 
-doc = PatternDoc("/home/claude/patterns.pdf", "Pom-Pom Cannon", paper="letter")
+output_dir = Path("outputs")  # Replace with a platform output directory when available.
+output_dir.mkdir(parents=True, exist_ok=True)
+doc = PatternDoc(str(output_dir / "patterns.pdf"), "Pom-Pom Cannon", paper="letter")
 doc.new_page()
 doc.title_block([
     "1. Print all pages at 100% scale (Actual Size). Check the calibration bar.",
@@ -111,7 +121,7 @@ parts, labels colliding with outlines) are invisible in code and obvious in
 pixels:
 
 ```bash
-pdftoppm -png -r 60 patterns.pdf check
+pdftoppm -png -r 60 outputs/patterns.pdf outputs/check
 ```
 
 View each `check-N.png`. Confirm: calibration bar on page 1, no part touches
@@ -120,8 +130,8 @@ has a punch mark, labels don't overlap outlines.
 
 ## Step 6 - Deliver
 
-Copy the guide and PDF to `/mnt/user-data/outputs/` and present both files.
-Summarize what's on each PDF page and mention the 100%-scale printing
+Present the guide and PDF from the chosen output directory. Summarize what's on
+each PDF page and mention the 100%-scale printing
 requirement. If the design assumed a material dimension (tube diameter,
 cardboard thickness), state the assumption and offer to regenerate to match
 the user's actual materials - real tubes and boxes vary.

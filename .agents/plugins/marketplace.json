@@ -1,0 +1,32 @@
+{
+  "name": "tteschon-agent-skills",
+  "interface": {
+    "displayName": "Tyler Teschon's Agent Skills"
+  },
+  "plugins": [
+    {
+      "name": "fun-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/fun-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Creativity"
+    },
+    {
+      "name": "work-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/work-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

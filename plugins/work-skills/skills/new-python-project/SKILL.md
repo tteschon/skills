@@ -15,8 +15,8 @@ The job is not done when the files exist. It is done when Step 5 goes green.
 
 ## Before you scaffold
 
-Ask the user the things you genuinely cannot infer, in one batch (in Claude
-Code, one `AskUserQuestion` call with multiple questions):
+Ask the user the things you genuinely cannot infer, in one batch. In clients
+with structured questions, use one prompt containing all of them:
 
 1. **Location** - which directory, or a new subdirectory of the cwd.
 2. **Package or application** - packages are imported or installed as a

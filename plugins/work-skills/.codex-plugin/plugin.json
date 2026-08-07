@@ -1,0 +1,27 @@
+{
+  "name": "work-skills",
+  "version": "1.0.0",
+  "description": "Productivity and work-focused agent skills",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["python", "uv", "tooling", "productivity"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Work Skills",
+    "shortDescription": "Modern Python project setup workflows",
+    "longDescription": "Create and modernize Python projects with uv, Ruff, pytest, ty, and pre-commit, then verify the complete toolchain.",
+    "developerName": "Tyler Teschon",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/tteschon/skills",
+    "defaultPrompt": [
+      "Set up a new Python project",
+      "Modernize this Python project with uv"
+    ]
+  }
+}

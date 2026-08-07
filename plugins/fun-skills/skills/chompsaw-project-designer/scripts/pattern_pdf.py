@@ -12,7 +12,7 @@ Conventions baked in:
 
 Typical use:
     from pattern_pdf import PatternDoc
-    doc = PatternDoc("/home/claude/patterns.pdf", "My Project", paper="letter")
+    doc = PatternDoc("outputs/patterns.pdf", "My Project", paper="letter")
     doc.new_page()
     doc.title_block(["Print at 100% scale...", "..."])
     doc.calibration_bar(12, 230)

@@ -1,0 +1,27 @@
+{
+  "name": "fun-skills",
+  "version": "1.0.0",
+  "description": "Fun and creative agent skills",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["chompsaw", "cardboard", "maker", "patterns"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Fun Skills",
+    "shortDescription": "Creative cardboard project design workflows",
+    "longDescription": "Design ChompSaw cardboard projects, write practical build guides, and generate actual-size printable pattern PDFs.",
+    "developerName": "Tyler Teschon",
+    "category": "Creativity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/tteschon/skills",
+    "defaultPrompt": [
+      "Design a ChompSaw cardboard project",
+      "Create a printable cardboard pattern"
+    ]
+  }
+}
