@@ -23,7 +23,9 @@ plugins/
     ├── plugin.json
     ├── .codex-plugin/plugin.json
     ├── .claude-plugin/plugin.json
-    └── skills/new-python-project/
+    └── skills/
+        ├── new-agent-skill/
+        └── new-python-project/
 ```
 
 Each plugin keeps a portable Agent Plugins manifest at its root plus native
@@ -85,7 +87,9 @@ python3 scripts/validate.py
 Checks each plugin against the Agent Plugins 1.0 manifest rules, validates the
 Codex and Claude Code manifests and marketplaces, keeps shared metadata in
 agreement, and validates every `SKILL.md` against the Agent Skills format. Runs
-on every push via [.github/workflows/validate.yml](.github/workflows/validate.yml).
+on every push via [.github/workflows/validate.yml](.github/workflows/validate.yml),
+which additionally checks the Claude Code marketplace and plugin manifests
+against their published Schemastore schemas.
 
 ## License
 

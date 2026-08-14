@@ -196,20 +196,29 @@ def check_skill(skill_dir: Path) -> None:
         warn(md, f"frontmatter key {key!r} is not defined by the Agent Skills spec")
 
 
-def check_author(path: Path, author: Any, *, required: bool) -> None:
+def check_author(
+    path: Path,
+    author: Any,
+    *,
+    required: bool,
+    field: str = "author",
+) -> None:
+    """Check a person object. Marketplace `owner` has the same shape as `author`."""
     if author is None and not required:
         return
     if not isinstance(author, dict):
-        error(path, "`author` must be an object")
+        error(path, f"`{field}` must be an object")
         return
     unknown = set(author) - {"name", "email", "url"}
     if unknown:
-        error(path, f"author contains unsupported fields: {sorted(unknown)}")
-    if required and not non_empty_string(author.get("name")):
-        error(path, "`author.name` must be a non-empty string")
+        error(path, f"{field} contains unsupported fields: {sorted(unknown)}")
+    # Only absence is reported here; the loop below covers a present but
+    # empty or non-string value, so a blank name is not reported twice.
+    if required and "name" not in author:
+        error(path, f"`{field}.name` is required")
     for key in ("name", "email", "url"):
         if key in author and not non_empty_string(author[key]):
-            error(path, f"`author.{key}` must be a non-empty string")
+            error(path, f"`{field}.{key}` must be a non-empty string")
 
 
 def check_portable_manifest(plugin_dir: Path) -> dict[str, Any] | None:
@@ -351,6 +360,9 @@ def load_marketplace(path: Path, *, client: str) -> dict[str, dict[str, Any]]:
         interface = marketplace.get("interface")
         if not isinstance(interface, dict) or not non_empty_string(interface.get("displayName")):
             error(path, "`interface.displayName` must be a non-empty string")
+    else:
+        # Required by the published Claude Code marketplace schema.
+        check_author(path, marketplace.get("owner"), required=True, field="owner")
     plugins = marketplace.get("plugins")
     if not isinstance(plugins, list):
         error(path, "`plugins` must be an array")
@@ -390,8 +402,12 @@ def load_marketplace(path: Path, *, client: str) -> dict[str, dict[str, Any]]:
                 error(path, f"{name!r} category must be a non-empty string")
             elif category not in CODEX_CATEGORIES:
                 error(path, f"{name!r} category {category!r} is not a Codex category")
-        elif entry.get("source") != expected_path:
-            error(path, f"{name!r} source must be {expected_path!r}")
+        else:
+            if entry.get("source") != expected_path:
+                error(path, f"{name!r} source must be {expected_path!r}")
+            # Free-form in the Claude Code schema - unrelated to CODEX_CATEGORIES.
+            if "category" in entry and not non_empty_string(entry["category"]):
+                error(path, f"{name!r} category must be a non-empty string")
     return entries
 
 

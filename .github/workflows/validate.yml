@@ -18,6 +18,18 @@ jobs:
           --schemafile https://agent-plugins.org/schemas/1.0.0/plugin.schema.json
           plugins/*/plugin.json
 
+      - name: Validate the Claude Code marketplace against its published schema
+        run: >
+          uvx check-jsonschema
+          --schemafile https://www.schemastore.org/claude-code-marketplace.json
+          .claude-plugin/marketplace.json
+
+      - name: Validate the Claude Code plugin manifests against their schema
+        run: >
+          uvx check-jsonschema
+          --schemafile https://www.schemastore.org/claude-code-plugin-manifest.json
+          plugins/*/.claude-plugin/plugin.json
+
       - name: Validate skills against the Agent Skills specification
         run: |
           for skill in plugins/*/skills/*; do
