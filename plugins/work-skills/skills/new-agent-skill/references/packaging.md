@@ -138,8 +138,13 @@ its directory name.
 
 ## When only adding a skill to an existing plugin
 
-No manifest change is required to pass validation, but three pieces of
-user-facing text go stale silently:
+Bump `version` in all three manifests. Installed clients cache the extracted
+plugin under its version number, so without a bump the new skill never
+reaches anyone who already has the plugin - see the first Gotcha in
+`SKILL.md`. Adding a skill is a minor bump; editing one is a patch bump.
+
+Nothing else is required to pass validation, but three pieces of user-facing
+text go stale silently:
 
 - `keywords` - shared across all three manifests, so any change is a
   three-file edit.

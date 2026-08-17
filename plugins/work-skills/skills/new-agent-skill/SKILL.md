@@ -114,8 +114,12 @@ symlink as an error, since package paths must stay inside the plugin root.
 
 ## Step 5 - Update the packaging
 
-Adding a skill to an existing plugin needs no manifest change to *validate* -
-but the manifests carry user-facing text that a new skill can make stale:
+**Bump the plugin `version` in all three manifests.** This is not
+bookkeeping - see the first entry under Gotchas. Adding a skill is a minor
+bump (`1.0.0` to `1.1.0`); rewriting one in place is a patch bump.
+
+The rest needs no manifest change to *validate*, but the manifests carry
+user-facing text that a new skill can make stale:
 
 - `keywords` in all three of `plugin.json`, `.claude-plugin/plugin.json`, and
   `.codex-plugin/plugin.json` - these must stay byte-identical to each other.
@@ -170,6 +174,16 @@ commit unless asked.
 These are the mistakes made without being told otherwise. They are specific
 to this repository's validators.
 
+- **A new skill that ships without a `version` bump is invisible to everyone
+  who already installed the plugin.** Claude Code caches the extracted plugin
+  under its version number - `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`.
+  Re-adding the marketplace re-clones the repository, so the clone looks
+  current and the skill is plainly there on disk, but the cache key did not
+  change, so the stale payload is reused and the new skill never loads. Every
+  validator passes, CI is green, and the skill simply does not appear. Bump
+  `version` in all three manifests in the same commit that adds the skill.
+  The local escape hatch is `rm -rf` on that one version directory, but it
+  fixes only the machine it is run on.
 - **The name must match the directory in three places at once.** Renaming a
   skill means renaming the directory *and* the frontmatter `name`. `skills-ref`
   NFKC-normalizes both before comparing, so visually identical Unicode names
