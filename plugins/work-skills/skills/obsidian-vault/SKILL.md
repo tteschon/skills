@@ -1,6 +1,6 @@
 ---
 name: obsidian-vault
-description: Reads, searches, and edits an Obsidian vault through the obsidian command line interface - notes, daily notes, tasks, frontmatter properties, tags, backlinks, and templates. Use this skill when the user wants to find something in their notes, read or summarize a note, capture a thought into today's daily note, create or append to a note, tick off a task, retag or move files, or trace what links to what. Also use it when the user mentions Obsidian, their vault, a daily note, a wikilink, or the obsidian CLI - and when they say things like "add this to my notes", "what did I write about X", or "put that in today's note" without naming the tool. Do not use it for Markdown files outside a vault, or to edit this repository's own docs - the ordinary file tools are better for those.
+description: Reads, searches, and edits an Obsidian vault through the obsidian command line interface - notes, daily notes, frontmatter properties, tags, backlinks, and templates. Use this skill when the user wants to find something in their notes, read or summarize a note, capture a thought into today's daily note, create or append to a note, retag or move files, or trace what links to what. Also use it when the user mentions Obsidian, their vault, a daily note, a wikilink, or the obsidian CLI - and when they say things like "add this to my notes", "what did I write about X", or "put that in today's note" without naming the tool. Do not use it for Markdown files outside a vault, or to edit this repository's own docs - the ordinary file tools are better for those. For a vault where each task is its own note with status, due, priority, and cadence frontmatter, use obsidian-tasks instead.
 compatibility: Requires the obsidian CLI - Obsidian desktop 1.12.7+ with Settings - General - Command line interface enabled, and the app running
 ---
 
@@ -135,7 +135,7 @@ file. To add to a note that already exists, `append` or `prepend` - never
 | Open tasks in the vault | `obsidian tasks todo format=json` |
 | Tasks in one note | `obsidian tasks path="<path>" format=json` |
 | Complete a task | `obsidian task ref=<path>:<line> done` |
-| Set frontmatter | `obsidian property:set name=<key> value=<v> type=<type> path="<path>"` |
+| Set frontmatter | `obsidian property:set name=<key> value=<v> path="<path>"` |
 | Remove frontmatter | `obsidian property:remove name=<key> path="<path>"` |
 | Tags on a note | `obsidian tags path="<path>"` |
 | Tag counts across the vault | `obsidian tags counts sort=count` |
@@ -143,11 +143,13 @@ file. To add to a note that already exists, `append` or `prepend` - never
 `tasks ... format=json` returns `status`, `text`, `file`, and `line` per
 task - read the `line` from that output and feed it straight back as
 `ref=<file>:<line>`. Do not count lines by hand from a `read`; frontmatter
-and the file's own offsets will not agree with the index.
+and the file's own offsets will not agree with the index. These are checkbox
+tasks written inside note bodies. A vault where each task is a separate note
+with `status` and `due` frontmatter is a different system - use
+`obsidian-tasks` for that.
 
-`property:set` needs `type=` to store anything that is not text -
-`list`, `number`, `checkbox`, `date`, or `datetime`. Without it a date lands
-as a string and stops sorting.
+**Omit `type=` on `property:set` unless deliberately registering a property's
+type.** See Gotchas - `type=` is a vault-wide setting, not a per-note one.
 
 For templates, bases, link hygiene, and file history, read
 `references/commands.md` - it maps each of those onto the exact command and
@@ -186,6 +188,13 @@ printed an `Error: ` line, say so plainly and say what did not happen.
   separately and match the output text against `Error: `. The one exit code
   worth reading is 127, which comes from the shell rather than the CLI and
   means the binary is absent - see "Before you start".
+- **`property:set ... type=` changes the property's type for the whole
+  vault.** It writes `.obsidian/types.json`, not the note, so
+  `property:set name=due value="~25,731 mi" type=text` on one note flips
+  `due` from `date` to `text` for every note that uses it and for any base
+  that sorts on it. Nothing warns, and the note itself looks correct.
+  Omitting `type=` writes the same value and leaves the registry alone, so
+  omit it unless the intent really is to register a type.
 - **`vault=` after the command name is silently ignored.**
   `obsidian vault=work-vault files total` and
   `obsidian files total vault=work-vault` both succeed and return different
