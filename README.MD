@@ -25,7 +25,8 @@ plugins/
     ├── .claude-plugin/plugin.json
     └── skills/
         ├── new-agent-skill/
-        └── new-python-project/
+        ├── new-python-project/
+        └── obsidian-vault/
 ```
 
 Each plugin keeps a portable Agent Plugins manifest at its root plus native
