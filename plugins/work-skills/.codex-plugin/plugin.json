@@ -9,19 +9,20 @@
   "homepage": "https://github.com/tteschon/skills",
   "repository": "https://github.com/tteschon/skills",
   "license": "MIT",
-  "keywords": ["python", "uv", "tooling", "productivity"],
+  "keywords": ["python", "uv", "tooling", "productivity", "skills", "authoring"],
   "skills": "./skills/",
   "interface": {
     "displayName": "Work Skills",
-    "shortDescription": "Modern Python project setup workflows",
-    "longDescription": "Create and modernize Python projects with uv, Ruff, pytest, ty, and pre-commit, then verify the complete toolchain.",
+    "shortDescription": "Python project setup and agent skill authoring",
+    "longDescription": "Create and modernize Python projects with uv, Ruff, pytest, ty, and pre-commit, and author agent skills that pass this repository's packaging and Agent Skills validators.",
     "developerName": "Tyler Teschon",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Write"],
     "websiteURL": "https://github.com/tteschon/skills",
     "defaultPrompt": [
       "Set up a new Python project",
-      "Modernize this Python project with uv"
+      "Modernize this Python project with uv",
+      "Write a new agent skill for this repo"
     ]
   }
 }
