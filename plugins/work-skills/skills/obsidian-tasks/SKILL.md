@@ -1,81 +1,118 @@
 ---
 name: obsidian-tasks
-description: Creates and manages task notes in an Obsidian vault's task repo - one note per task carrying status, due, priority, category, cadence, and last done frontmatter, listed by a Bases file. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task repo, Home Base, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks written inline in note bodies, and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
-compatibility: Requires the obsidian CLI and a vault holding one note per task with status, due, priority, category, cadence, and last done frontmatter
+description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, cadence, and last done. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks written inline in note bodies, and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
+compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file
 ---
 
 # Obsidian Tasks
 
-Run a note-per-task system in an Obsidian vault - create tasks from the
-user's template, move them through their lifecycle, roll recurring chores
-forward after they are done, and answer what to work on next.
+Run a note-per-task system in an Obsidian vault - create tasks, move them
+through their lifecycle, roll recurring chores forward after they are done,
+and answer what to work on next.
 
-Every write here changes the user's real notes, and the CLI exits 0 on
-failure. Nothing is done until the read-back in Step 6.
+**A note is a task because it has `type: task`, not because of where it
+lives.** The base collects them wherever they sit. Every write here changes
+the user's real notes, and the CLI exits 0 on failure, so nothing is done
+until the read-back in Step 6.
 
 ## Before you start
 
-`obsidian-vault` covers the CLI itself - the preflight, vault targeting,
-and why exit codes cannot be trusted. Do not re-derive any of that. Run its
-check first:
+`obsidian-vault` covers the CLI itself - preflight, vault targeting, and why
+exit codes cannot be trusted. Do not re-derive it. Run its check, then
+**resolve the layout rather than assuming it**:
 
 ```bash
-command -v obsidian
+command -v obsidian          # exit 1 - stop, not fixable from the shell
+obsidian vault info=name     # confirm the right vault
+obsidian bases               # find the task base
 ```
 
-Exit 1 means the CLI is absent and unfixable from the shell - stop and say
-so. Then confirm the layout, because every path below depends on it:
+| Found | Do |
+|---|---|
+| A task base | Use the path `bases` printed, exactly |
+| Several bases | Pick by name, or ask; do not guess |
+| No task base | Offer to bootstrap - see below |
 
-| Check | Command | Expect |
-|---|---|---|
-| Right vault | `obsidian vault info=name` | the vault holding the tasks |
-| Task repo exists | `obsidian files folder="Tasks/task repo"` | the task notes |
-| Base exists | `obsidian bases` | `Tasks/Home Base.base` |
+**Use the path the app prints, never the one `ls` shows** - paths are
+case-sensitive to the CLI and case-insensitive on macOS disk. See Gotchas.
 
-Folder and base names are per-vault. If they differ from the above, use what
-the vault reports - do not assume these literals.
+Then `obsidian read path="<base path>"` to learn its filter, which names the
+property that marks a task and any folder the base restricts to.
 
-## Step 1 - Survey before acting
+### Bootstrap
 
-Read current state before any write. Never assume a status from memory, from
-the user's phrasing, or from a Kanban board.
+When there is no task base, confirm with the user, then create one at
+`tasks/task base.base` with this content:
+
+```yaml
+filters:
+  and:
+    - type == "task"
+    - '!file.inFolder("Templates")'
+views:
+  - type: table
+    name: Table
+    order: [file.name, category, due, priority, status]
+```
+
+Write it with `obsidian create path=... content=...`, passing newlines as
+literal `\n`. `create` makes missing parent folders on the way, so one call
+builds the whole structure, and the base is queryable immediately - no
+reload. The `Templates` exclusion is not optional: the task template carries
+`type: task` so that template-made notes are real tasks, and without the
+clause the template lists itself as one.
+
+## Step 1 - Survey and learn the schema
+
+Read current state before any write, and let the existing rows define the
+field set rather than a list baked into this skill:
 
 ```bash
-obsidian base:query path="Tasks/Home Base.base" format=json
+obsidian base:query path="<base path>" format=json
 ```
 
-One object per task, keyed by the base view's columns - `path`, `file name`,
-`category`, `cadence`, `created`, `due`, `last done`, `priority`, `status`.
-That single call is usually the whole survey; do not read notes one by one.
+One object per task, keyed by the base view's columns. **The keys are the
+schema** - a new task should carry the same ones. Never assume a status from
+memory, from the user's phrasing, or from a Kanban board.
 
 ## Step 2 - Create a task
 
-Create from the user's template so defaults and the `created` wikilink come
-from one place:
+`base:create` satisfies the base's filters on its own - it stamps the filter
+property into the new note's frontmatter, and writes the file into the folder
+the filter names, or beside the `.base` file when the filter names none:
 
 ```bash
-obsidian create name="<task name>" path="Tasks/task repo" \
-  template="task template @{{date}}"
+obsidian base:create path="<base path>" name="<task name>"
 ```
 
-`path=` is the **folder**; `name=` becomes the filename. The template name
-contains a literal `{{date}}` and must be quoted exactly as listed by
-`obsidian templates`. Success prints `Created: <path>`.
-
-Then set only the fields the user actually specified:
+The new note comes back scaffolded from the base - every column in the view's
+`order:` list present as an empty key, with the filter property (`type:
+task`) already filled in. Fill in what the user gave, plus `created`, which
+`base:create` leaves empty because it takes no template:
 
 ```bash
-obsidian property:set name=priority value=medium path="<path>"
-obsidian property:set name=category value=yard path="<path>"
+obsidian property:set name=status value=backlog path="<new path>"
+obsidian property:set name=priority value=medium path="<new path>"
+obsidian property:set name=category value=yard path="<new path>"
+obsidian property:set name=created value="[[<today>]]" path="<new path>"
 ```
 
-**Never pass `type=` on `property:set`.** See Gotchas - it rewrites the
-vault-wide property type. Ask for `category` and `priority` when the user
-did not say; leave `due` and `cadence` empty rather than inventing them.
+`created` is the daily-note backlink, so write it as a quoted wikilink -
+`"[[2026-08-16]]"`, not a bare date. Notes made from the user's template get
+this automatically; notes made by `base:create` do not.
 
-Read `references/schema.md` before creating or migrating - it holds the
-field contract, the values already in use, and why `due` is not always a
-date.
+**Never pass `type=` to `property:set`** - see Gotchas. This is doubly
+confusing here, because `type` is also the name of the property that marks a
+task; `name=type` is correct, `type=text` is the destructive one.
+
+Ask for `category` and `priority` when the user did not say. Leave `due` and
+`cadence` empty rather than inventing them. If `base:create` fails, fall back
+to `create name="<name>" path="<folder>"` followed by
+`property:set name=type value=task` - the note is only a task once it has
+that property.
+
+Read `references/schema.md` before creating or migrating - it holds the field
+contract, the values already in use, and why `due` is not always a date.
 
 ## Step 3 - Change status
 
@@ -85,8 +122,8 @@ The canonical set is `backlog`, `active`, `done`.
 obsidian property:set name=status value=active path="<path>"
 ```
 
-Confirm with the user before setting anything to `done`. If the task has a
-`cadence`, do not use this step at all - go to Step 4.
+Confirm before setting anything to `done`. If the task has a `cadence`, do
+not use this step - go to Step 4.
 
 ## Step 4 - Complete a recurring task
 
@@ -100,22 +137,14 @@ one `done` and stopping is the most likely mistake in this skill.
 | `every N mi` | **Ask for the current odometer.** `last done` = `YYYY-MM-DD (X mi)`; `due` = `~<X+N> mi`; `status` stays `active` |
 
 The odometer is not in the vault and cannot be derived from the last
-reading - ask, and stop if the user does not know. Writing a guessed
-mileage silently corrupts the next service interval.
-
-Worked example, Crosstrek at 25,900 mi with `cadence: every 3,000 mi`:
-
-```bash
-obsidian property:set name="last done" value="2026-08-16 (25,900 mi)" path="<path>"
-obsidian property:set name=due value="~28,900 mi" path="<path>"
-```
+reading - ask, and stop if the user does not know. A guessed mileage
+silently corrupts the next service interval.
 
 ## Step 5 - Answer what to work on
 
-The base defines **no sort order** - its `order:` field is column order for
-the table view, and its only filter is the folder. Any ranking is this
-skill's, so state the rule being used rather than implying the vault
-supplied it.
+The base defines **no sort order** - `order:` is column order for the table
+view. Any ranking is this skill's, so state the rule rather than implying the
+vault supplied it.
 
 Default ranking, highest first:
 
@@ -125,13 +154,11 @@ Default ranking, highest first:
 4. Ties broken by `due`, empty `due` last
 
 **Report non-date `due` values as their own group.** Vehicle tasks carry
-mileage strings, so they are neither overdue nor not-overdue without an
-odometer reading. Dropping them from the answer hides real work; sorting
-them as dates is wrong.
+mileage strings, so they are neither overdue nor current without an odometer
+reading. Dropping them hides real work; sorting them as dates is wrong.
 
-Say how many tasks were considered and note anything conspicuous - a
-`cadence` with an empty `last done` cannot be scheduled at all, and that is
-worth surfacing rather than silently ranking last.
+Say how many tasks were considered, and surface anything unschedulable - a
+`cadence` with an empty `last done` cannot be scheduled at all.
 
 ## Step 6 - Verify
 
@@ -139,9 +166,9 @@ The CLI exits 0 on failure, so check the output text and then the data:
 
 1. Each write prints `Created: <path>` or `Set <property>: <value>`. A line
    starting with `Error: ` is a failure.
-2. Re-run the Step 1 `base:query` and confirm the task now reads the way it
-   should. For a new note, `obsidian read path="<path>"` and confirm
-   `created` resolved to `[[YYYY-MM-DD]]` rather than a literal `{{date}}`.
+2. Re-run the Step 1 `base:query`. **A new task that does not appear in it
+   has no `type: task`** - that is the single most likely failure, and it is
+   invisible from reading the note alone.
 
 Do not report a change as made on the strength of a silent command.
 
@@ -154,30 +181,36 @@ computed. If a command printed `Error: `, say what did not happen.
 ## Gotchas
 
 - **Never pass `type=` to `property:set`.** It rewrites the property's type
-  vault-wide in `.obsidian/types.json`, not just on the note being edited.
+  vault-wide in `.obsidian/types.json`, not on the note being edited.
   `property:set name=due value="~25,731 mi" type=text` flips `due` from
   `date` to `text` for every note and for the base, silently breaking date
   sorting everywhere. Omitting `type=` writes the same value and leaves the
-  registry untouched, which is why mileage strings can live in a
-  `date`-typed field at all.
+  registry untouched.
+- **Paths are case-sensitive to the CLI but not to the macOS disk.** A vault
+  folder renamed to `tasks/` in Obsidian still shows as `Tasks/` in `ls`, and
+  `base:query path="Tasks/task base.base"` fails with `Base file not found`
+  while the lowercase spelling returns every row. Always take paths from
+  `obsidian bases` and `obsidian files`, never from the filesystem.
+- **`base:create` scaffolds the base's columns but fills only the filter.**
+  The new note gets every column in the view's `order:` list as an empty key
+  and the filter property populated, and it honours a `file.inFolder(...)`
+  clause when choosing the destination. It takes no `template=`, so the
+  user's task template is not on this path and `created` arrives empty -
+  set the wikilink explicitly or the daily-note backlink is lost.
+- **Anything carrying `type: task` joins the base, including the template.**
+  The task template needs the property so template-created notes are real
+  tasks, which means the base needs a `!file.inFolder("Templates")` clause or
+  the template appears as a task. The same trap applies to any other note
+  that happens to use the property.
 - **`due` and `last done` are `date`-typed but hold text on vehicle tasks** -
-  `~25,731 mi`, `2026-06-19 (22,731 mi)`. Parse defensively. Date arithmetic
-  on the raw value will raise or, worse, sort a mileage string as a date.
+  `~25,731 mi`, `2026-06-19 (22,731 mi)`. Parse defensively; date arithmetic
+  on the raw value raises or sorts a mileage string as a date.
 - **`created` is a wikilink, not a date** - `"[[2026-08-16]]"`, pointing at
-  the daily note. Writing a bare date breaks that backlink, and the property
-  is deliberately unregistered so it stays text. The template handles this;
-  do not set `created` by hand.
-- **The user's template may default `status` to a value outside the
-  canonical set.** Read the note back after `create` and correct `status`
-  rather than trusting the template.
-- **`Tasks/Home Board.md` and `Tasks/reoccurring tasks.md` are stale legacy
-  views.** They look authoritative - a Kanban board with columns, a table
-  with cadences - and they disagree with the frontmatter on roughly a fifth
-  of tasks, including tasks sitting in Backlog on the board while their note
-  says `active`. Never read a status from them, and never write them. If
-  asked to sync them, explain that frontmatter is the source of truth and
-  that hand-maintained duplicates are what caused the drift.
+  the daily note. Writing a bare date breaks that backlink. The template
+  handles it; do not set `created` by hand.
 - **A `cadence` with an empty `last done` has no computable next due date.**
-  Most recurring tasks in the vault are in this state. Do not invent a
-  `last done` to make the math work - ask when it was last done, or say it
-  cannot be scheduled yet.
+  Most recurring tasks are in this state. Do not invent a `last done` to make
+  the math work - ask, or say it cannot be scheduled yet.
+- **A Kanban board that creates task notes still never writes status back.**
+  Boards and hand-maintained tables look authoritative and drift from the
+  frontmatter. Never read a status from one, and never write one.

@@ -7,12 +7,12 @@ from how they are declared.
 
 ## The fields
 
-One note per task, in the task repo folder, with this frontmatter. The shape
-comes from the user's template, which is the only thing that should ever
-write `created`.
+One note per task, with this frontmatter. The shape comes from the user's
+template, which is the only thing that should ever write `created`.
 
 | Field | Declared type | Reality |
 |---|---|---|
+| `type` | text | **The identity field.** `task` is what puts a note in the base |
 | `status` | text | Canonical set is `backlog`, `active`, `done` |
 | `due` | **date** | Holds mileage strings on vehicle tasks - see below |
 | `created` | unregistered | A wikilink, `"[[YYYY-MM-DD]]"`, not a date |
@@ -24,6 +24,23 @@ write `created`.
 "Declared type" is what `.obsidian/types.json` registers. Unregistered
 fields infer as text and are safe to write. The two registered as `date` are
 where the trouble is.
+
+### `type` decides membership, not the folder
+
+A note is a task because it carries `type: task`. Folder is irrelevant - the
+base collects matching notes from anywhere in the vault, and a note sitting
+in the task folder without the property is invisible to it. When a task
+created through this skill does not show up in `base:query`, a missing
+`type` is the first thing to check.
+
+`type` is a vault-wide namespace shared with other Bases, not a
+task-only field. Values seen alongside it include `recipe`, `story`, and
+`essay`, each backing its own base. Two consequences:
+
+- Do not repurpose `type` for anything else on a task note.
+- Adding `type: task` to a note anywhere - including a template - puts it in
+  the task base. The base needs a `!file.inFolder("Templates")` clause, or
+  the task template lists itself as a task.
 
 Confirm the live registry rather than trusting this table, since a stray
 write can change it:
@@ -79,17 +96,18 @@ The vault contains three views of the same tasks. Only the first is written.
 
 | System | Role |
 |---|---|
-| Task notes in the task repo | **Source of truth.** The only thing this skill writes |
+| Notes carrying `type: task` | **Source of truth.** The only thing this skill writes |
 | A Kanban board note | A *creation and viewing* surface, not a mirror |
 | A recurring-tasks table note | Hand-maintained view, stale |
 
 The board deserves a precise description, because "stale duplicate"
 understates it. Its `kanban:settings` block sets `new-note-template` and
 `new-note-folder` to the same template and folder used here, so dragging a
-new card onto the board really does create a proper task note. What it does
-not do is write back - moving a card between columns changes the card's
-position and nothing else, so `status` in the frontmatter never learns about
-it.
+new card onto the board really does create a proper task note - and once the
+template carries `type: task`, those notes land in the base automatically.
+What it does not do is write back - moving a card between columns changes the
+card's position and nothing else, so `status` in the frontmatter never learns
+about it.
 
 That is the mechanism behind the drift. At a survey of 34 tasks, 7 of the 33
 appearing in both disagreed - three the frontmatter called `active` sat in
