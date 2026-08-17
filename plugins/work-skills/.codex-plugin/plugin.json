@@ -1,6 +1,6 @@
 {
   "name": "work-skills",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Productivity and work-focused agent skills",
   "author": {
     "name": "Tyler Teschon",
@@ -9,20 +9,20 @@
   "homepage": "https://github.com/tteschon/skills",
   "repository": "https://github.com/tteschon/skills",
   "license": "MIT",
-  "keywords": ["python", "uv", "tooling", "productivity", "skills", "authoring"],
+  "keywords": ["python", "uv", "tooling", "productivity", "skills", "authoring", "obsidian", "notes"],
   "skills": "./skills/",
   "interface": {
     "displayName": "Work Skills",
-    "shortDescription": "Python project setup and agent skill authoring",
-    "longDescription": "Create and modernize Python projects with uv, Ruff, pytest, ty, and pre-commit, and author agent skills that pass this repository's packaging and Agent Skills validators.",
+    "shortDescription": "Python projects, agent skills, and Obsidian vaults",
+    "longDescription": "Create and modernize Python projects with uv, Ruff, pytest, ty, and pre-commit, author agent skills that pass this repository's packaging and Agent Skills validators, and search, read, and edit Obsidian vaults through the obsidian CLI.",
     "developerName": "Tyler Teschon",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Write"],
     "websiteURL": "https://github.com/tteschon/skills",
     "defaultPrompt": [
       "Set up a new Python project",
-      "Modernize this Python project with uv",
-      "Write a new agent skill for this repo"
+      "Write a new agent skill for this repo",
+      "Add this to my Obsidian daily note"
     ]
   }
 }
