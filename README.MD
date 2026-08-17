@@ -26,6 +26,7 @@ plugins/
     └── skills/
         ├── new-agent-skill/
         ├── new-python-project/
+        ├── obsidian-tasks/
         └── obsidian-vault/
 ```
 
