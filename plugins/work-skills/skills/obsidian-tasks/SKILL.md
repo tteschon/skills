@@ -114,7 +114,7 @@ that property.
 Read `references/schema.md` before creating or migrating - it holds the field
 contract, the values already in use, and why `due` is not always a date.
 
-## Step 3 - Change status
+## Step 3 - Change status, and complete an ad-hoc task
 
 The canonical set is `backlog`, `active`, `done`.
 
@@ -122,23 +122,68 @@ The canonical set is `backlog`, `active`, `done`.
 obsidian property:set name=status value=active path="<path>"
 ```
 
-Confirm before setting anything to `done`. If the task has a `cadence`, do
-not use this step - go to Step 4.
+**Check `cadence` before writing `done`.** It is what separates the two kinds
+of task, and the branch is not recoverable by reading the note afterwards:
+
+| `cadence` | Completing the task means |
+|---|---|
+| Present | **Go to Step 4.** Never write `status: done` |
+| Absent | Confirm with the user, then `status` = `done` and `last done` = today |
+
+A completed ad-hoc task leaves the base - the base filters on
+`status != "done"`. The note stays in the vault with its full history; it just
+stops appearing in queries and reports. **That disappearance is the success
+condition, not a failed write.** Step 6 says how to tell the two apart.
 
 ## Step 4 - Complete a recurring task
 
 A recurring task is never left `done`; that is what makes it recur. Marking
-one `done` and stopping is the most likely mistake in this skill.
+one `done` and stopping is the most likely mistake in this skill - and now it
+also drops the task out of the base, so the mistake hides itself.
 
-| Cadence | On completion |
+Due dates snap to the end of a period rather than rolling forward from the
+completion date. Compute from **today**, not from `last done`:
+
+```
+weekly:   this_sunday = today + (6 - today.weekday())   # Mon=0 .. Sun=6
+          due = this_sunday + 7 days                    # end of NEXT week
+
+monthly / every N months / annual:
+          target = today's month + N months             # monthly N=1, annual N=12
+          due = last calendar day of target month
+```
+
+Worked from a completion on Monday 2026-08-17:
+
+| Cadence | New `due` |
 |---|---|
-| `weekly`, `monthly`, `every N months`, `annually` | `last done` = today; `due` = today + cadence; `status` = `backlog` |
-| `seasonally` | `last done` = today; leave `due` empty; `status` = `backlog` |
-| `every N mi` | **Ask for the current odometer.** `last done` = `YYYY-MM-DD (X mi)`; `due` = `~<X+N> mi`; `status` stays `active` |
+| `weekly` | 2026-08-30 (Sunday) |
+| `monthly` | 2026-09-30 |
+| `every 6 months` | 2027-02-28 |
+| `annual` | 2027-08-31 |
 
-The odometer is not in the vault and cannot be derived from the last
-reading - ask, and stop if the user does not know. A guessed mileage
-silently corrupts the next service interval.
+Then write three properties, in this order, and append to the body:
+
+```bash
+obsidian property:set name="last done" value="<today>" path="<path>"
+obsidian property:set name=due value="<computed>" path="<path>"
+obsidian property:set name=status value=backlog path="<path>"
+obsidian append path="<path>" content='\n- <today> - <detail>\n'
+```
+
+`last done` and `due` are real dates, always. Detail that is not a date -
+mileage, a part number, what was actually done - goes on the body log line
+under a `## Service log` or `## Completion log` heading, **never** back into
+those two fields. That is what broke date sorting across the whole base
+before, and the body keeps the full history that `last done` overwrites.
+
+**A cadence these rules do not cover** - `seasonally`, or anything that will
+not parse - gets `last done` and `status: backlog` with `due` left empty. Say
+so in the report. Do not invent an interval.
+
+Because `due` is computed from the completion date, a recurring task with an
+empty `last done` is not a problem: it simply has no due date until the first
+time it is completed.
 
 ## Step 5 - Answer what to work on
 
@@ -153,12 +198,15 @@ Default ranking, highest first:
 3. `priority: high`, then `medium`, then `low`
 4. Ties broken by `due`, empty `due` last
 
-**Report non-date `due` values as their own group.** Vehicle tasks carry
-mileage strings, so they are neither overdue nor current without an odometer
-reading. Dropping them hides real work; sorting them as dates is wrong.
+`due` is a real date on every task. If a non-date value ever appears there,
+something wrote text into a `date` field - report it as a data fault rather
+than trying to rank it.
 
-Say how many tasks were considered, and surface anything unschedulable - a
-`cadence` with an empty `last done` cannot be scheduled at all.
+Say how many tasks were considered. The base holds only open work now, so a
+count that drops between runs usually means an ad-hoc task was completed, not
+that something went missing. Recurring tasks with no `due` are waiting on
+their first completion, not broken - list them separately rather than as
+overdue.
 
 ## Step 6 - Verify
 
@@ -166,9 +214,16 @@ The CLI exits 0 on failure, so check the output text and then the data:
 
 1. Each write prints `Created: <path>` or `Set <property>: <value>`. A line
    starting with `Error: ` is a failure.
-2. Re-run the Step 1 `base:query`. **A new task that does not appear in it
-   has no `type: task`** - that is the single most likely failure, and it is
-   invisible from reading the note alone.
+2. Re-run the Step 1 `base:query`, then read the note itself when a task is
+   absent from it. Absence now has two causes and they mean opposite things:
+
+   | Absent from `base:query` | Meaning |
+   |---|---|
+   | Note has `status: done` | Correct - an ad-hoc task was completed |
+   | Anything else | **The note has no `type: task`** - the classic failure |
+
+   The second is invisible from reading the note alone, which is why the
+   read-back is against the base and not the file.
 
 Do not report a change as made on the strength of a silent command.
 
@@ -202,15 +257,32 @@ computed. If a command printed `Error: `, say what did not happen.
   tasks, which means the base needs a `!file.inFolder("Templates")` clause or
   the template appears as a task. The same trap applies to any other note
   that happens to use the property.
-- **`due` and `last done` are `date`-typed but hold text on vehicle tasks** -
-  `~25,731 mi`, `2026-06-19 (22,731 mi)`. Parse defensively; date arithmetic
-  on the raw value raises or sorts a mileage string as a date.
+- **The base holds only open work.** Its filter includes `status != "done"`,
+  so `base:query` is not an inventory of task notes - completed ad-hoc tasks
+  still exist on disk and are simply not in it. Anything auditing history has
+  to read the notes.
+- **Text in `due` breaks computation silently, not loudly.** A formula over a
+  non-date `due` returns `Error: Invalid operator between String and Date`,
+  but a comparison like `due < now()` returns **`false`** - so the task is
+  never flagged overdue, and a `due <= now() + "7 days"` view omits it with no
+  error at all. Both fields are real dates on every task today. Keep them
+  that way; non-date detail belongs on a body log line.
 - **`created` is a wikilink, not a date** - `"[[2026-08-16]]"`, pointing at
   the daily note. Writing a bare date breaks that backlink. The template
   handles it; do not set `created` by hand.
-- **A `cadence` with an empty `last done` has no computable next due date.**
-  Most recurring tasks are in this state. Do not invent a `last done` to make
-  the math work - ask, or say it cannot be scheduled yet.
+- **Next `due` comes from the completion date, never from `last done`.** An
+  empty `last done` is not an obstacle - the task just has no due date until
+  it is first completed. Do not backfill a `last done` to make arithmetic
+  work; ask, or leave `due` empty and say so.
+- **`obsidian create` does not overwrite.** Pointed at an existing path it
+  silently writes `<name> 1.base` alongside the original, and a query against
+  the original path then returns the old content - which reads as an edit
+  that did not take. Check the `Created:` line for a path you did not intend.
+- **A file written to the vault from the shell is not visible to the CLI
+  immediately.** `obsidian read` serves the app's cached copy and can return
+  pre-edit content for a moment after an external write, while `cat` on the
+  same path shows the new bytes. When a read looks stale, confirm against the
+  filesystem before concluding the write failed.
 - **A Kanban board that creates task notes still never writes status back.**
   Boards and hand-maintained tables look authoritative and drift from the
   frontmatter. Never read a status from one, and never write one.
