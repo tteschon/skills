@@ -18,7 +18,7 @@ until the read-back in Step 6.
 ## Before you start
 
 `obsidian-vault` covers the CLI itself - preflight, vault targeting, and why
-exit codes cannot be trusted. Do not re-derive it. Run its check, then
+exit codes cannot be trusted; do not re-derive it. Run its check, then
 **resolve the layout rather than assuming it**:
 
 ```bash
@@ -31,67 +31,12 @@ obsidian bases               # find the task base
 |---|---|
 | A task base | Use the path `bases` printed, exactly |
 | Several bases | Pick by name, or ask; do not guess |
-| No task base | Offer to bootstrap - see below |
+| No task base | Confirm with the user, then build the one in `references/base.md` |
 
 **Use the path the app prints, never the one `ls` shows** - paths are
 case-sensitive to the CLI and case-insensitive on macOS disk. See Gotchas.
-
 Then `obsidian read path="<base path>"` to learn its filter, which names the
-property that marks a task and any folder the base restricts to.
-
-### Bootstrap
-
-When there is no task base, confirm with the user, then create one at
-`tasks/task base.base` with this content:
-
-```yaml
-filters:
-  and:
-    - type == "task"
-    - '!file.inFolder("Templates")'
-    - 'status != "done"'
-formulas:
-  days_until_due: 'if(due, (due - today()).days.round(0), "")'
-  overdue: 'if(due, due < today(), false)'
-views:
-  - type: table
-    name: Table
-    order: [file.name, category, cadence, due, last done, priority, status]
-  - type: table
-    name: Today
-    filters:
-      and:
-        - 'due != null'
-        - 'due <= today()'
-    order: [file.name, category, due, priority, status]
-  - type: table
-    name: This week
-    filters:
-      and:
-        - 'due != null'
-        - 'due <= today() + "7d"'
-    order: [file.name, category, due, formula.days_until_due, priority]
-  - type: table
-    name: Needs attention
-    filters:
-      and:
-        - 'cadence != null'
-        - 'due == null'
-    order: [file.name, cadence, last done, priority]
-```
-
-The formulas do the date arithmetic once, in the vault, so every run reads
-the same numbers instead of recomputing them - and the views answer the daily
-and weekly questions directly. `Needs attention` is the data-quality queue:
-recurring tasks that have no due date because they have never been
-completed.
-
-Write it with `obsidian create path=... content=...`, passing newlines as
-literal `\n`. `create` makes missing parent folders on the way, so one call
-builds the whole structure, and the base is queryable immediately - no
-reload. The `Templates` exclusion is not optional: the task template carries
-`type: task` so that template-made notes are real tasks, and without the
-clause the template lists itself as one.
+property marking a task and any folder the base restricts to.
 
 ## Step 1 - Survey and learn the schema
 
@@ -104,100 +49,75 @@ obsidian base:query path="<base path>" format=json
 
 One object per task, keyed by the base view's columns. **The keys are the
 schema** - a new task should carry the same ones. Never assume a status from
-memory, from the user's phrasing, or from a Kanban board.
+memory or from the user's phrasing.
 
-Formula columns come back alongside the properties. When the base defines
+Formula columns come back with the properties. When the base defines
 `days_until_due` and `overdue`, **those values are the answer** - the vault
-computed them, so do not recompute from `due`. `obsidian base:views` lists
-what a base offers, and a named view can be queried directly:
-
-```bash
-obsidian base:query path="<base path>" view="Today" format=json
-obsidian base:query path="<base path>" view="This week" format=json
-```
-
-A base predating those views has neither, and Step 5's ranking rules still
-apply unchanged.
+computed them, so do not recompute from `due`. `base:views` lists what a base
+offers, and `base:query ... view="Today"` queries one directly. A base
+predating those views has neither; Step 5's rules still apply.
 
 ## Step 2 - Create a task
 
 `base:create` satisfies the base's filters on its own - it stamps the filter
-property into the new note's frontmatter, and writes the file into the folder
-the filter names, or beside the `.base` file when the filter names none:
+property into the new note and writes the file into the folder the filter
+names, or beside the `.base` file when it names none. The note comes back
+scaffolded: every column in the view's `order:` list as an empty key, with
+`type: task` filled in. Fill in what the user gave, plus `created`, which
+arrives empty because `base:create` takes no template:
 
 ```bash
 obsidian base:create path="<base path>" name="<task name>"
-```
-
-The new note comes back scaffolded from the base - every column in the view's
-`order:` list present as an empty key, with the filter property (`type:
-task`) already filled in. Fill in what the user gave, plus `created`, which
-`base:create` leaves empty because it takes no template:
-
-```bash
 obsidian property:set name=status value=backlog path="<new path>"
 obsidian property:set name=priority value=medium path="<new path>"
 obsidian property:set name=category value=yard path="<new path>"
 obsidian property:set name=created value="[[<today>]]" path="<new path>"
 ```
 
-`created` is the daily-note backlink, so write it as a quoted wikilink -
-`"[[2026-08-16]]"`, not a bare date. Notes made from the user's template get
-this automatically; notes made by `base:create` do not.
+`created` is the daily-note backlink - a quoted wikilink, never a bare date.
+The user's template sets it; `base:create` does not.
 
-**Never pass `type=` to `property:set`** - see Gotchas. This is doubly
-confusing here, because `type` is also the name of the property that marks a
-task; `name=type` is correct, `type=text` is the destructive one.
+**Never pass `type=` to `property:set`** - see Gotchas. It is doubly
+confusing here, because `type` is also the property that marks a task:
+`name=type` is correct, `type=text` is the destructive one.
 
-Ask for `category` and `priority` when the user did not say. Leave `due` and
+Ask for `category` and `priority` when the user did not say; leave `due` and
 `cadence` empty rather than inventing them. If `base:create` fails, fall back
-to `create name="<name>" path="<folder>"` followed by
+to `create name="<name>" path="<folder>"` then
 `property:set name=type value=task` - the note is only a task once it has
 that property.
 
-Read `references/schema.md` before creating or migrating - it holds the field
-contract, the values already in use, and why `due` is not always a date.
+Read `references/schema.md` before creating or migrating: it holds the field
+contract and the values already in use, so a new task reuses a `category`
+instead of coining one.
 
 ## Step 3 - Change status, and complete an ad-hoc task
 
-The canonical set is `backlog`, `active`, `done`.
+The canonical set is `backlog`, `active`, `done`:
 
 ```bash
 obsidian property:set name=status value=active path="<path>"
 ```
 
-**Check `cadence` before writing `done`.** It is what separates the two kinds
-of task, and the branch is not recoverable by reading the note afterwards:
+**Check `cadence` before writing `done`** - it separates the two kinds of
+task, and the branch is not recoverable by reading the note afterwards. A
+task *with* a cadence goes to Step 4 and never gets `status: done`. A task
+*without* one is confirmed with the user, then gets `status: done` and
+`last done` = today.
 
-| `cadence` | Completing the task means |
-|---|---|
-| Present | **Go to Step 4.** Never write `status: done` |
-| Absent | Confirm with the user, then `status` = `done` and `last done` = today |
-
-A completed ad-hoc task leaves the base - the base filters on
-`status != "done"`. The note stays in the vault with its full history; it just
-stops appearing in queries and reports. **That disappearance is the success
-condition, not a failed write.** Step 6 says how to tell the two apart.
+A completed ad-hoc task leaves the base, which filters on `status != "done"`.
+The note keeps its full history on disk; it just stops appearing in queries.
+**That disappearance is the success condition, not a failed write** - Step 6
+tells the two apart.
 
 ## Step 4 - Complete a recurring task
 
 A recurring task is never left `done`; that is what makes it recur. Marking
-one `done` and stopping is the most likely mistake in this skill - and now it
-also drops the task out of the base, so the mistake hides itself.
+one `done` and stopping is the most likely mistake in this skill, and it now
+drops the task out of the base - so the mistake hides itself.
 
-Due dates snap to the end of a period rather than rolling forward from the
-completion date. Compute from **today**, not from `last done`:
-
-```
-weekly:   this_sunday = today + (6 - today.weekday())   # Mon=0 .. Sun=6
-          due = this_sunday + 7 days                    # end of NEXT week
-
-monthly / every N months / annual:
-          target = today's month + N months             # monthly N=1, annual N=12
-          due = last calendar day of target month
-```
-
-Worked from a completion on Monday 2026-08-17:
+Due dates snap to the **end of a period**, computed from today rather than
+from `last done`. Worked from a completion on Monday 2026-08-17:
 
 | Cadence | New `due` |
 |---|---|
@@ -215,25 +135,20 @@ obsidian property:set name=status value=backlog path="<path>"
 obsidian append path="<path>" content='\n- <today> - <detail>\n'
 ```
 
-`last done` and `due` are real dates, always. Detail that is not a date -
-mileage, a part number, what was actually done - goes on the body log line
-under a `## Service log` or `## Completion log` heading, **never** back into
-those two fields. That is what broke date sorting across the whole base
-before, and the body keeps the full history that `last done` overwrites.
+`last done` and `due` are real dates, always. Non-date detail - mileage, a
+part number, what was done - goes on the body log line under a
+`## Service log` heading, **never** into those two fields. The body log also
+keeps the history that `last done` overwrites.
 
-**A cadence these rules do not cover** - `seasonally`, or anything that will
-not parse - gets `last done` and `status: backlog` with `due` left empty. Say
-so in the report. Do not invent an interval.
-
-Because `due` is computed from the completion date, a recurring task with an
-empty `last done` is not a problem: it simply has no due date until the first
-time it is completed.
+Read `references/recurrence.md` for any cadence outside that table, the
+algorithm behind it, and the month-end and leap-year edges. It exists to stop
+you rolling the completion date forward by the interval instead of snapping
+to a period end - a drift that compounds every cycle.
 
 ## Step 5 - Answer what to work on
 
-The base defines **no sort order** - `order:` is column order for the table
-view. Any ranking is this skill's, so state the rule rather than implying the
-vault supplied it.
+The base defines **no sort order** - `order:` is column order. Any ranking is
+this skill's, so state the rule rather than implying the vault supplied it.
 
 Default ranking, highest first:
 
@@ -242,45 +157,35 @@ Default ranking, highest first:
 3. `priority: high`, then `medium`, then `low`
 4. Ties broken by `due`, empty `due` last
 
-Prefer the base's own `overdue` and `days_until_due` when it defines them,
-and query `view="Today"` or `view="This week"` rather than pulling every row
-and filtering by hand. The ranking is still this skill's - the base only
-precomputes its inputs.
+Prefer the base's own `overdue` and `days_until_due`, and query
+`view="Today"` or `view="This week"` rather than filtering every row by hand.
 
-`due` is a real date on every task. If a non-date value ever appears there,
-something wrote text into a `date` field - report it as a data fault rather
-than trying to rank it.
+Say how many tasks were considered. The base holds only open work, so a count
+that drops between runs usually means an ad-hoc task was completed, not that
+something went missing. Recurring tasks with no `due` are waiting on their
+first completion - list them separately rather than as overdue.
 
-Say how many tasks were considered. The base holds only open work now, so a
-count that drops between runs usually means an ad-hoc task was completed, not
-that something went missing. Recurring tasks with no `due` are waiting on
-their first completion, not broken - list them separately rather than as
-overdue.
-
-## Step 6 - Verify
+## Step 6 - Verify, then report
 
 The CLI exits 0 on failure, so check the output text and then the data:
 
 1. Each write prints `Created: <path>` or `Set <property>: <value>`. A line
    starting with `Error: ` is a failure.
-2. Re-run the Step 1 `base:query`, then read the note itself when a task is
-   absent from it. Absence now has two causes and they mean opposite things:
+2. Re-run the Step 1 `base:query`, then read the note when a task is absent
+   from it. Absence has two causes meaning opposite things:
 
    | Absent from `base:query` | Meaning |
    |---|---|
    | Note has `status: done` | Correct - an ad-hoc task was completed |
    | Anything else | **The note has no `type: task`** - the classic failure |
 
-   The second is invisible from reading the note alone, which is why the
-   read-back is against the base and not the file.
+   The second is invisible from the note alone, which is why the read-back
+   goes against the base and not the file.
 
-Do not report a change as made on the strength of a silent command.
-
-## Step 7 - Report
-
-Give the note path, the fields changed, and their new values, quoting the
-read-back. For a recurrence roll-forward, state the new `due` and how it was
-computed. If a command printed `Error: `, say what did not happen.
+Never report a change as made on the strength of a silent command. Then give
+the note path, the fields changed, and their new values, quoting the
+read-back. For a roll-forward, state the new `due` and how it was computed.
+If a command printed `Error: `, say what did not happen.
 
 ## Gotchas
 
@@ -295,27 +200,6 @@ computed. If a command printed `Error: `, say what did not happen.
   `base:query path="Tasks/task base.base"` fails with `Base file not found`
   while the lowercase spelling returns every row. Always take paths from
   `obsidian bases` and `obsidian files`, never from the filesystem.
-- **`base:create` scaffolds the base's columns but fills only the filter.**
-  The new note gets every column in the view's `order:` list as an empty key
-  and the filter property populated, and it honours a `file.inFolder(...)`
-  clause when choosing the destination. It takes no `template=`, so the
-  user's task template is not on this path and `created` arrives empty -
-  set the wikilink explicitly or the daily-note backlink is lost.
-- **Anything carrying `type: task` joins the base, including the template.**
-  The task template needs the property so template-created notes are real
-  tasks, which means the base needs a `!file.inFolder("Templates")` clause or
-  the template appears as a task. The same trap applies to any other note
-  that happens to use the property.
-- **Date subtraction yields a Duration, and `.days` is still not an integer.**
-  Access `.days` before any number function - `.round()` on a raw Duration
-  fails. Then round it: daylight saving makes a span across a DST boundary
-  120 days *and one hour*, so `(due - today()).days` returns
-  `120.04166666666667`. `(due - today()).days.round(0)` returns `120`.
-- **A formula over an empty property errors on every row that lacks it.**
-  Guard with `if()`: `'if(due, (due - today()).days.round(0), "")'`.
-- **A `formula.X` in a view's `order:` with no matching `formulas:` entry
-  fails silently** - the column simply does not appear, with no error to
-  explain it.
 - **Flag sets vary by CLI build, and `obsidian help` on the machine wins.**
   Published documentation describes a `silent` flag that this build does not
   have; here `open` is an opt-in instead. Check `obsidian help <command>`
@@ -325,33 +209,16 @@ computed. If a command printed `Error: `, say what did not happen.
   uses it - a task here is a note with `type: task`, not a `- [ ]` line.
 - **The base holds only open work.** Its filter includes `status != "done"`,
   so `base:query` is not an inventory of task notes - completed ad-hoc tasks
-  still exist on disk and are simply not in it. Anything auditing history has
-  to read the notes.
+  are still on disk. Auditing history means reading the notes.
 - **Text in `due` breaks computation silently, not loudly.** A formula over a
-  non-date `due` returns `Error: Invalid operator between String and Date`,
-  but a comparison like `due < now()` returns **`false`** - so the task is
-  never flagged overdue, and a `due <= now() + "7 days"` view omits it with no
-  error at all. Both fields are real dates on every task today. Keep them
-  that way; non-date detail belongs on a body log line.
+  non-date `due` errors, but a comparison like `due < today()` returns
+  **`false`** - so the task is never flagged overdue and date-window views
+  omit it with no error at all. Both fields are real dates on every task
+  today; keep them that way.
 - **`created` is a wikilink, not a date** - `"[[2026-08-16]]"`, pointing at
   the daily note. Writing a bare date breaks that backlink. The template
   handles it; do not set `created` by hand.
-- **Next `due` comes from the completion date, never from `last done`.** An
-  empty `last done` is not an obstacle - the task just has no due date until
-  it is first completed. Do not backfill a `last done` to make arithmetic
-  work; ask, or leave `due` empty and say so.
-- **`obsidian create` needs the `overwrite` flag to replace a file.** Without
-  it, pointed at an existing path, it writes `<name> 1.base` alongside the
-  original and reports success - and a query against the original path then
-  returns the old content, which reads as an edit that did not take. The
-  `Created:` line names the path it actually wrote; `Overwrote:` is what a
-  successful replace prints. `obsidian-vault` covers `overwrite` and the rule
-  to confirm before using it, since it replaces the whole file.
-- **A file written to the vault from the shell is not visible to the CLI
-  immediately.** `obsidian read` serves the app's cached copy and can return
-  pre-edit content for a moment after an external write, while `cat` on the
-  same path shows the new bytes. When a read looks stale, confirm against the
-  filesystem before concluding the write failed.
-- **A Kanban board that creates task notes still never writes status back.**
-  Boards and hand-maintained tables look authoritative and drift from the
-  frontmatter. Never read a status from one, and never write one.
+- **Never read or write task state from a Kanban board or a hand-maintained
+  table.** They look authoritative and drift from the frontmatter;
+  `references/schema.md` measures the drift and explains why the board is
+  still a legitimate way to *create* tasks.
