@@ -1,6 +1,6 @@
 ---
 name: obsidian-tasks
-description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, cadence, and last done. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks written inline in note bodies, and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
+description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, cadence, and last done. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks written inline in note bodies - those are what the obsidian tasks command lists - and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
 compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file
 ---
 
@@ -49,11 +49,42 @@ filters:
   and:
     - type == "task"
     - '!file.inFolder("Templates")'
+    - 'status != "done"'
+formulas:
+  days_until_due: 'if(due, (due - today()).days.round(0), "")'
+  overdue: 'if(due, due < today(), false)'
 views:
   - type: table
     name: Table
+    order: [file.name, category, cadence, due, last done, priority, status]
+  - type: table
+    name: Today
+    filters:
+      and:
+        - 'due != null'
+        - 'due <= today()'
     order: [file.name, category, due, priority, status]
+  - type: table
+    name: This week
+    filters:
+      and:
+        - 'due != null'
+        - 'due <= today() + "7d"'
+    order: [file.name, category, due, formula.days_until_due, priority]
+  - type: table
+    name: Needs attention
+    filters:
+      and:
+        - 'cadence != null'
+        - 'due == null'
+    order: [file.name, cadence, last done, priority]
 ```
+
+The formulas do the date arithmetic once, in the vault, so every run reads
+the same numbers instead of recomputing them - and the views answer the daily
+and weekly questions directly. `Needs attention` is the data-quality queue:
+recurring tasks that have no due date because they have never been
+completed.
 
 Write it with `obsidian create path=... content=...`, passing newlines as
 literal `\n`. `create` makes missing parent folders on the way, so one call
@@ -74,6 +105,19 @@ obsidian base:query path="<base path>" format=json
 One object per task, keyed by the base view's columns. **The keys are the
 schema** - a new task should carry the same ones. Never assume a status from
 memory, from the user's phrasing, or from a Kanban board.
+
+Formula columns come back alongside the properties. When the base defines
+`days_until_due` and `overdue`, **those values are the answer** - the vault
+computed them, so do not recompute from `due`. `obsidian base:views` lists
+what a base offers, and a named view can be queried directly:
+
+```bash
+obsidian base:query path="<base path>" view="Today" format=json
+obsidian base:query path="<base path>" view="This week" format=json
+```
+
+A base predating those views has neither, and Step 5's ranking rules still
+apply unchanged.
 
 ## Step 2 - Create a task
 
@@ -193,10 +237,15 @@ vault supplied it.
 
 Default ranking, highest first:
 
-1. Overdue - `due` parses as a date and is before today
+1. Overdue - `overdue` is true, or `due` is a date before today
 2. `status: active`
 3. `priority: high`, then `medium`, then `low`
 4. Ties broken by `due`, empty `due` last
+
+Prefer the base's own `overdue` and `days_until_due` when it defines them,
+and query `view="Today"` or `view="This week"` rather than pulling every row
+and filtering by hand. The ranking is still this skill's - the base only
+precomputes its inputs.
 
 `due` is a real date on every task. If a non-date value ever appears there,
 something wrote text into a `date` field - report it as a data fault rather
@@ -257,6 +306,23 @@ computed. If a command printed `Error: `, say what did not happen.
   tasks, which means the base needs a `!file.inFolder("Templates")` clause or
   the template appears as a task. The same trap applies to any other note
   that happens to use the property.
+- **Date subtraction yields a Duration, and `.days` is still not an integer.**
+  Access `.days` before any number function - `.round()` on a raw Duration
+  fails. Then round it: daylight saving makes a span across a DST boundary
+  120 days *and one hour*, so `(due - today()).days` returns
+  `120.04166666666667`. `(due - today()).days.round(0)` returns `120`.
+- **A formula over an empty property errors on every row that lacks it.**
+  Guard with `if()`: `'if(due, (due - today()).days.round(0), "")'`.
+- **A `formula.X` in a view's `order:` with no matching `formulas:` entry
+  fails silently** - the column simply does not appear, with no error to
+  explain it.
+- **Flag sets vary by CLI build, and `obsidian help` on the machine wins.**
+  Published documentation describes a `silent` flag that this build does not
+  have; here `open` is an opt-in instead. Check `obsidian help <command>`
+  before using a flag taken from any external source.
+- **`obsidian tasks` is a different system.** It lists checkbox tasks written
+  inline in note bodies (`done`, `todo`, `status="<char>"`). This skill never
+  uses it - a task here is a note with `type: task`, not a `- [ ]` line.
 - **The base holds only open work.** Its filter includes `status != "done"`,
   so `base:query` is not an inventory of task notes - completed ad-hoc tasks
   still exist on disk and are simply not in it. Anything auditing history has
@@ -274,10 +340,13 @@ computed. If a command printed `Error: `, say what did not happen.
   empty `last done` is not an obstacle - the task just has no due date until
   it is first completed. Do not backfill a `last done` to make arithmetic
   work; ask, or leave `due` empty and say so.
-- **`obsidian create` does not overwrite.** Pointed at an existing path it
-  silently writes `<name> 1.base` alongside the original, and a query against
-  the original path then returns the old content - which reads as an edit
-  that did not take. Check the `Created:` line for a path you did not intend.
+- **`obsidian create` needs the `overwrite` flag to replace a file.** Without
+  it, pointed at an existing path, it writes `<name> 1.base` alongside the
+  original and reports success - and a query against the original path then
+  returns the old content, which reads as an edit that did not take. The
+  `Created:` line names the path it actually wrote; `Overwrote:` is what a
+  successful replace prints. `obsidian-vault` covers `overwrite` and the rule
+  to confirm before using it, since it replaces the whole file.
 - **A file written to the vault from the shell is not visible to the CLI
   immediately.** `obsidian read` serves the app's cached copy and can return
   pre-edit content for a moment after an external write, while `cat` on the
