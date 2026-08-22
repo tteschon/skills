@@ -15,7 +15,6 @@ filters:
   and:
     - type == "task"
     - '!file.inFolder("Templates")'
-    - 'status != "done"'
 formulas:
   days_until_due: 'if(due, (due - today()).days.round(0), "")'
   overdue: 'if(due, due < today(), false)'
@@ -44,21 +43,36 @@ views:
         - 'cadence != null'
         - 'due == null'
     order: [file.name, cadence, last done, priority]
+  - type: table
+    name: Sweep
+    filters:
+      and:
+        - 'status == "done"'
+        - 'cadence == null'
+    order: [file.name, category, last done, created]
 ```
 
-Three filter clauses, each load-bearing:
+Two filter clauses, both load-bearing:
 
 - `type == "task"` is what makes a note a task.
 - `!file.inFolder("Templates")` is not optional. The task template carries
   `type: task` so template-made notes are real tasks, and without this clause
   the template lists itself as one. The same trap applies to any other note
   that happens to use the property.
-- `status != "done"` is what makes a completed ad-hoc task leave the base.
+
+**There is deliberately no `status` clause.** An earlier version filtered
+`status != "done"`, which dropped a completed one-time task out of the base
+the moment it was finished - tidy to look at, but it also put the note beyond
+the reach of `base:query`, so nothing could ever find it again to clean it up.
+Keeping done tasks in the base is what makes `SKILL.md` Step 5 possible.
 
 The formulas do the date arithmetic once, in the vault, so every run reads
 the same numbers instead of recomputing them. The views answer the daily and
-weekly questions directly. `Needs attention` is the data-quality queue:
-recurring tasks with no due date because they have never been completed.
+weekly questions directly. Two are queues rather than schedules:
+`Needs attention` holds recurring tasks with no due date because they have
+never been completed, and `Sweep` holds finished one-time tasks waiting to be
+deleted. The `cadence == null` clause on `Sweep` is what keeps a recurring
+task that is wrongly sitting in `done` off the deletion list.
 
 ## Writing the file
 
@@ -96,7 +110,16 @@ task work are in `SKILL.md`.
   Guard with `if()`: `'if(due, (due - today()).days.round(0), "")'`.
 - **A `formula.X` in a view's `order:` with no matching `formulas:` entry
   fails silently** - the column simply does not appear, with no error to
-  explain it.
+  explain it. A dangling `formula.X` under `sort:` is equally quiet: the live
+  base sorts on a `formula.Untitled` that no `formulas:` block defines, and
+  the remaining sort keys still apply as though it were not there. Neither
+  case reports anything, so a sort that looks configured may not be.
+- **`== null` matches an empty property, not just a missing one.** The task
+  template writes `cadence:` with no value on every note, so `cadence == null`
+  is what correctly selects one-time tasks - a filter written to look for the
+  key's absence would match nothing. Verified against the live vault: the
+  `Sweep` view returns the finished one-time tasks and excludes a `done` task
+  carrying `cadence: weekly`.
 - **Test formulas and filters on a scratch base, never the live one.**
   Create it, query it, delete it. A malformed formula is invisible until a
   query returns `Error: ...` in the column where a value should be.

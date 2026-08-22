@@ -1,6 +1,6 @@
 ---
 name: obsidian-tasks
-description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, cadence, and last done. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks written inline in note bodies - those are what the obsidian tasks command lists - and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
+description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, and cadence. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, clear out finished one-time tasks, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks inline in note bodies - what the obsidian tasks command lists - do not use it to review the whole base - groom my tasks, what is stale - which is obsidian-task-grooming; and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
 compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file
 ---
 
@@ -12,8 +12,8 @@ and answer what to work on next.
 
 **A note is a task because it has `type: task`, not because of where it
 lives.** The base collects them wherever they sit. Every write here changes
-the user's real notes, and the CLI exits 0 on failure, so nothing is done
-until the read-back in Step 6.
+the user's real notes - one of them deletes a note - and the CLI exits 0 on
+failure, so nothing is done until the read-back in Step 7.
 
 ## Before you start
 
@@ -55,7 +55,12 @@ Formula columns come back with the properties. When the base defines
 `days_until_due` and `overdue`, **those values are the answer** - the vault
 computed them, so do not recompute from `due`. `base:views` lists what a base
 offers, and `base:query ... view="Today"` queries one directly. A base
-predating those views has neither; Step 5's rules still apply.
+predating those views has neither; Step 6's rules still apply.
+
+**The base includes done tasks.** Its filter no longer excludes them, so
+`base:query` is the full inventory rather than a list of open work. Two
+consequences: drop `status: done` rows before ranking anything (Step 6), and
+read them as the sweep queue (Step 5).
 
 ## Step 2 - Create a task
 
@@ -91,7 +96,7 @@ Read `references/schema.md` before creating or migrating: it holds the field
 contract and the values already in use, so a new task reuses a `category`
 instead of coining one.
 
-## Step 3 - Change status, and complete an ad-hoc task
+## Step 3 - Change status, and complete a one-time task
 
 The canonical set is `backlog`, `active`, `done`:
 
@@ -102,19 +107,32 @@ obsidian property:set name=status value=active path="<path>"
 **Check `cadence` before writing `done`** - it separates the two kinds of
 task, and the branch is not recoverable by reading the note afterwards. A
 task *with* a cadence goes to Step 4 and never gets `status: done`. A task
-*without* one is confirmed with the user, then gets `status: done` and
-`last done` = today.
+*without* one is finished for good here, and finishing it removes the note:
 
-A completed ad-hoc task leaves the base, which filters on `status != "done"`.
-The note keeps its full history on disk; it just stops appearing in queries.
-**That disappearance is the success condition, not a failed write** - Step 6
-tells the two apart.
+```bash
+obsidian property:set name="last done" value="<today>" path="<path>"
+obsidian property:set name=status value=done path="<path>"
+obsidian delete path="<path>"        # prints: Moved to trash: <path>
+```
+
+**Confirm with the user before the `delete`, naming the note.** It is the one
+command in this skill that removes work. Write `status: done` first even
+though the note is about to go: the trashed copy is recoverable, and it
+should read as finished work rather than as an abandoned draft.
+
+Deleting is right only because the task is one-time. Anything the user may
+want later - what was actually done, a measurement, a receipt - belongs in a
+note that outlives the task, so offer to move it before deleting rather than
+after. Step 5 sweeps the ones already sitting in the base.
 
 ## Step 4 - Complete a recurring task
 
 A recurring task is never left `done`; that is what makes it recur. Marking
-one `done` and stopping is the most likely mistake in this skill, and it now
-drops the task out of the base - so the mistake hides itself.
+one `done` and stopping is still the most likely mistake in this skill, but it
+no longer hides: done tasks stay in the base, so a done row carrying a cadence
+is visible as the anomaly it is. Step 5 lists those rows for roll-forward and
+never deletes them - **`cadence` is what keeps a task out of the sweep**, which
+is one more reason never to clear it.
 
 Due dates snap to the **end of a period**, computed from today rather than
 from `last done`. Worked from a completion on Monday 2026-08-17:
@@ -145,10 +163,57 @@ algorithm behind it, and the month-end and leap-year edges. It exists to stop
 you rolling the completion date forward by the interval instead of snapping
 to a period end - a drift that compounds every cycle.
 
-## Step 5 - Answer what to work on
+## Step 5 - Sweep completed one-time tasks
 
-The base defines **no sort order** - `order:` is column order. Any ranking is
-this skill's, so state the rule rather than implying the vault supplied it.
+Because the base stopped filtering on `status`, finished one-time tasks stay
+in it instead of vanishing - which is the only reason they can be found and
+cleared at all. A row is a sweep candidate when **both** hold:
+
+- `status` is `done`
+- `cadence` is empty
+
+Take both from the Step 1 query, never from the note text - the template
+writes `cadence:` as an empty key, so a test for a missing line matches
+nothing. See Gotchas.
+
+When `base:views` lists a `Sweep` view, `base:query ... view="Sweep"` returns
+exactly these rows and no others. A base without one is not a problem; filter
+the Step 1 rows on the two conditions above instead.
+
+| Row | Do |
+|---|---|
+| `done`, cadence empty | Delete - the task is finished for good |
+| `done`, cadence set | **Never delete.** A recurring task stuck in `done`; roll it forward per Step 4 |
+| Anything else | Leave it |
+
+`obsidian-task-grooming` reports these candidates during a review but never
+deletes one - the deletion only ever happens here, so the cadence guard above
+has a single home. Offer the sweep when the survey turns up candidates; do not
+run it unasked on every invocation. List every candidate by name, take one confirmation for the
+batch, then delete them one path at a time:
+
+```bash
+obsidian delete path="<path>"        # prints: Moved to trash: <path>
+```
+
+Use the `path` value from `base:query` verbatim rather than retyping it -
+paths are case-sensitive to the CLI (see Gotchas), and a mistyped one prints
+`Error: File "..." not found.` instead of deleting anything.
+
+Most one-time tasks are frontmatter and nothing else, so the note carries no
+history worth keeping. When a candidate does have a body, say so while listing
+it and let the user decide - a service log or a set of notes is the kind of
+thing that should outlive the task.
+
+## Step 6 - Answer what to work on
+
+**Drop `status: done` rows before ranking.** They sit in the base now and they
+are not work; scheduling one is the new way to get this step wrong.
+
+The base's Table view sorts by `due` ascending, then `status` descending. That
+front-loads the soonest work and pushes empty `due` to the end, but it is not
+a priority ranking. Any ranking is this skill's, so state the rule rather than
+implying the vault supplied it.
 
 Default ranking, highest first:
 
@@ -159,33 +224,39 @@ Default ranking, highest first:
 
 Prefer the base's own `overdue` and `days_until_due`, and query
 `view="Today"` or `view="This week"` rather than filtering every row by hand.
+Both filter on `due` alone, not on `status` - a done task that still carries a
+due date comes back in them, so drop done rows after querying either.
 
-Say how many tasks were considered. The base holds only open work, so a count
-that drops between runs usually means an ad-hoc task was completed, not that
-something went missing. Recurring tasks with no `due` are waiting on their
-first completion - list them separately rather than as overdue.
+Say how many tasks were considered, counting open ones only. A count that
+drops between runs means a task was completed and swept, not that something
+went missing. Recurring tasks with no `due` are waiting on their first
+completion - list them separately rather than as overdue.
 
-## Step 6 - Verify, then report
+## Step 7 - Verify, then report
 
 The CLI exits 0 on failure, so check the output text and then the data:
 
-1. Each write prints `Created: <path>` or `Set <property>: <value>`. A line
-   starting with `Error: ` is a failure.
-2. Re-run the Step 1 `base:query`, then read the note when a task is absent
-   from it. Absence has two causes meaning opposite things:
+1. Each write prints `Created: <path>`, `Set <property>: <value>`, or
+   `Moved to trash: <path>`. A line starting with `Error: ` is a failure -
+   including `Error: File "..." not found.`, which is what a delete against a
+   mistyped path prints in place of doing anything.
+2. Re-run the Step 1 `base:query`. Done tasks stay in the base now, so absence
+   has one innocent cause and one failure:
 
    | Absent from `base:query` | Meaning |
    |---|---|
-   | Note has `status: done` | Correct - an ad-hoc task was completed |
+   | You deleted it in Step 3 or 5 | Correct - `obsidian read` on the path confirms it, printing `Error: File "..." not found.` |
    | Anything else | **The note has no `type: task`** - the classic failure |
 
    The second is invisible from the note alone, which is why the read-back
-   goes against the base and not the file.
+   goes against the base and not the file. A completed one-time task that is
+   still *present* means the delete did not happen - check its output line.
 
 Never report a change as made on the strength of a silent command. Then give
 the note path, the fields changed, and their new values, quoting the
 read-back. For a roll-forward, state the new `due` and how it was computed.
-If a command printed `Error: `, say what did not happen.
+For a deletion or a sweep, name every note removed and say it is recoverable
+from the vault trash. If a command printed `Error: `, say what did not happen.
 
 ## Gotchas
 
@@ -207,9 +278,21 @@ If a command printed `Error: `, say what did not happen.
 - **`obsidian tasks` is a different system.** It lists checkbox tasks written
   inline in note bodies (`done`, `todo`, `status="<char>"`). This skill never
   uses it - a task here is a note with `type: task`, not a `- [ ]` line.
-- **The base holds only open work.** Its filter includes `status != "done"`,
-  so `base:query` is not an inventory of task notes - completed ad-hoc tasks
-  are still on disk. Auditing history means reading the notes.
+- **The base holds done tasks too, and the sweep runs on them.** The filter
+  no longer excludes `status: done`, so `base:query` is the full inventory
+  rather than a list of open work. Drop done rows before ranking, and never
+  schedule one as if it were outstanding.
+- **`cadence` is empty on a one-time task, not missing.** The template writes
+  the key with no value, so `cadence:` appears on every task note and a test
+  for an absent line matches nothing - a sweep built that way deletes nothing
+  and reports success. `base:query` returns `null` for an empty key and for a
+  genuinely absent one alike, which is why the queried value is the one to
+  test.
+- **`obsidian delete` trashes by default; never pass `permanent`.** Plain
+  `delete` prints `Moved to trash: <path>` and the note stays recoverable from
+  the vault trash until the user empties it. `permanent` skips that, and
+  nothing in this skill needs it. Deletion is also the one action here to
+  confirm with the user before running.
 - **Text in `due` breaks computation silently, not loudly.** A formula over a
   non-date `due` errors, but a comparison like `due < today()` returns
   **`false`** - so the task is never flagged overdue and date-window views
