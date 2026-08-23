@@ -21,18 +21,23 @@ formulas:
 views:
   - type: table
     name: Table
-    order: [file.name, category, frequency, due, last done, priority, status]
+    order: [file.name, category, frequency, due, last done, priority, done]
+    sort:
+      - {property: done, direction: ASC}
+      - {property: due, direction: ASC}
   - type: table
     name: Today
     filters:
       and:
+        - 'done != true'
         - 'due != null'
         - 'due <= today()'
-    order: [file.name, category, due, priority, status]
+    order: [file.name, category, due, priority]
   - type: table
     name: This week
     filters:
       and:
+        - 'done != true'
         - 'due != null'
         - 'due <= today() + "7d"'
     order: [file.name, category, due, formula.days_until_due, priority]
@@ -40,6 +45,7 @@ views:
     name: Needs attention
     filters:
       and:
+        - 'done != true'
         - 'frequency != null'
         - 'due == null'
     order: [file.name, frequency, last done, priority]
@@ -47,7 +53,7 @@ views:
     name: Sweep
     filters:
       and:
-        - 'status == "done"'
+        - 'done == true'
         - 'frequency == null'
     order: [file.name, category, last done, created]
 ```
@@ -60,8 +66,9 @@ Two filter clauses, both load-bearing:
   the template lists itself as one. The same trap applies to any other note
   that happens to use the property.
 
-**There is deliberately no `status` clause.** An earlier version filtered
-`status != "done"`, which dropped a completed one-time task out of the base
+**There is deliberately no `done` clause on the base's own filter.** An
+earlier version filtered `status != "done"`, which dropped a completed
+one-time task out of the base
 the moment it was finished - tidy to look at, but it also put the note beyond
 the reach of `base:query`, so nothing could ever find it again to clean it up.
 Keeping done tasks in the base is what makes the `obsidian-task-grooming`

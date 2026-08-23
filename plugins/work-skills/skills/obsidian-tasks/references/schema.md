@@ -13,7 +13,7 @@ template, which is the only thing that should ever write `created`.
 | Field | Declared type | Reality |
 |---|---|---|
 | `type` | text | **The identity field.** `task` is what puts a note in the base |
-| `status` | text | `backlog`, `active`, `done` - on a one-time task, `done` means the note is about to be deleted |
+| `done` | **checkbox** | `true` once finished - on a one-time task that means the note is about to be deleted. Binary: there is no in-flight state |
 | `due` | **date** | A real date on every task. Keep it that way - see below |
 | `created` | unregistered | A wikilink, `"[[YYYY-MM-DD]]"`, not a date |
 | `priority` | text | `low`, `medium`, `high` |
@@ -58,7 +58,7 @@ no `recurring` flag; a task recurs if and only if it carries a rule.
 | | One-time | Recurring |
 |---|---|---|
 | `frequency` | empty | an `RRULE` value |
-| On completion | `status: done`, `last done` = today | `last done` = today, `due` recomputed, `status` back to `backlog` |
+| On completion | `done: true`, `last done` = today | `last done` = today, `due` recomputed, `done` back to `false` |
 | Afterwards | Note deleted to the vault trash | Stays, with a new due date |
 
 `frequency` is **empty, not absent**, on a one-time task - the template writes
@@ -109,7 +109,7 @@ every value in one call.
 
 | Field | Observed values |
 |---|---|
-| `status` | `backlog` dominates; `active` for in-flight; `done` on finished one-time tasks awaiting the sweep |
+| `done` | `false` on every open task; `true` only briefly, on a finished one-time task awaiting deletion |
 | `priority` | `low` and `medium` only - **no task carries `high`**, so priority ranks almost nothing as used |
 | `category` | `yard`, `home`, `errands`, `vehicle`, `health` |
 | `frequency` | `FREQ=WEEKLY;BYDAY=MO`, `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1`, `FREQ=YEARLY` - empty on one-time tasks |
@@ -141,10 +141,12 @@ on hold since 2023) through a camping packing list to one whose entire body is
 in that folder did not come out of the task template.
 
 **It does not write back.** Moving a card between columns changes the card's
-position and nothing else, so `status` in the frontmatter never learns about
-it. At an earlier survey of 34 tasks, 7 of the 33 appearing in both disagreed
-- three the frontmatter called `active` sat in the board's Backlog column, and
-three the board had archived as done were still `backlog` in frontmatter.
+position and nothing else, so the frontmatter never learns about it. At an
+earlier survey of 34 tasks - taken while completion still lived in a `status`
+text property - 7 of the 33 appearing in both disagreed: three the frontmatter
+called `active` sat in the board's Backlog column, and three the board had
+archived as done were still `backlog` in frontmatter. The property has since
+become the `done` checkbox; the board still does not write to it.
 
 So the board is a place the user thinks about tasks, and an unreliable way to
 read their state. Write frontmatter only. An agent editing a Kanban plugin's
