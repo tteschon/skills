@@ -21,7 +21,7 @@ formulas:
 views:
   - type: table
     name: Table
-    order: [file.name, category, cadence, due, last done, priority, status]
+    order: [file.name, category, frequency, due, last done, priority, status]
   - type: table
     name: Today
     filters:
@@ -40,15 +40,15 @@ views:
     name: Needs attention
     filters:
       and:
-        - 'cadence != null'
+        - 'frequency != null'
         - 'due == null'
-    order: [file.name, cadence, last done, priority]
+    order: [file.name, frequency, last done, priority]
   - type: table
     name: Sweep
     filters:
       and:
         - 'status == "done"'
-        - 'cadence == null'
+        - 'frequency == null'
     order: [file.name, category, last done, created]
 ```
 
@@ -72,7 +72,7 @@ the same numbers instead of recomputing them. The views answer the daily and
 weekly questions directly. Two are queues rather than schedules:
 `Needs attention` holds recurring tasks with no due date because they have
 never been completed, and `Sweep` holds finished one-time tasks waiting to be
-deleted. The `cadence == null` clause on `Sweep` is what keeps a recurring
+deleted. The `frequency == null` clause on `Sweep` is what keeps a recurring
 task that is wrongly sitting in `done` off the deletion list.
 
 ## Writing the file
@@ -115,12 +115,19 @@ task work are in `SKILL.md`.
   base sorts on a `formula.Untitled` that no `formulas:` block defines, and
   the remaining sort keys still apply as though it were not there. Neither
   case reports anything, so a sort that looks configured may not be.
-- **`== null` matches an empty property, not just a missing one.** The task
-  template writes `cadence:` with no value on every note, so `cadence == null`
-  is what correctly selects one-time tasks - a filter written to look for the
-  key's absence would match nothing. Verified against the live vault: the
-  `Sweep` view returns the finished one-time tasks and excludes a `done` task
-  carrying `cadence: weekly`.
+- **`== null` matches an empty property, but an empty *string* is not null.**
+  The template writes `frequency:` with no value, so `frequency == null`
+  correctly selects one-time tasks - a filter looking for the key's absence
+  would match nothing. But `frequency: ""`, which is what
+  `property:set value=""` writes, is **not** null and slips through the
+  filter. Verified on a scratch base against the live vault: a
+  `frequency != null` probe returned all 29 tasks while the one-time notes
+  held `""`, and the correct 11 once they held a bare key. Seed empty keys
+  from the template, never from `property:set`.
+- **A new property is invisible to `base:query` until a view lists it.**
+  Results are keyed by the view's `order:` columns, so a property written to
+  every note still reads back as absent until the base file names it. Update
+  the base before trying to verify a new field.
 - **Test formulas and filters on a scratch base, never the live one.**
   Create it, query it, delete it. A malformed formula is invisible until a
   query returns `Error: ...` in the column where a value should be.
