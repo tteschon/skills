@@ -19,7 +19,7 @@ template, which is the only thing that should ever write `created`.
 | `priority` | text | `low`, `medium`, `high` |
 | `category` | unregistered | Free text, but reuse an existing value |
 | `last done` | **date** | Latest completion only; the body log holds the history |
-| `cadence` | text | **Set = recurring, empty = one-time.** Parsed by Step 4, and what keeps a task out of the sweep |
+| `cadence` | text | **Set = recurring, empty = one-time.** Parsed by Step 4, and what keeps a task out of the grooming sweep |
 | `asset` | unregistered | Optional wikilink to the thing serviced, e.g. `"[[Cub Cadet Ultima 54 Mower]]"` |
 
 "Declared type" is what `.obsidian/types.json` registers. Unregistered

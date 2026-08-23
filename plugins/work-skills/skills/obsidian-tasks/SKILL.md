@@ -1,6 +1,6 @@
 ---
 name: obsidian-tasks
-description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, and cadence. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, clear out finished one-time tasks, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks inline in note bodies - what the obsidian tasks command lists - do not use it to review the whole base - groom my tasks, what is stale - which is obsidian-task-grooming; and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
+description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, and cadence. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks inline in note bodies - what the obsidian tasks command lists - do not use it to review the whole base or to sweep out finished tasks - groom my tasks, what is stale, clear out my done tasks - which is obsidian-task-grooming; and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
 compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file
 ---
 
@@ -60,7 +60,7 @@ predating those views has neither; Step 6's rules still apply.
 **The base includes done tasks.** Its filter no longer excludes them, so
 `base:query` is the full inventory rather than a list of open work. Two
 consequences: drop `status: done` rows before ranking anything (Step 6), and
-read them as the sweep queue (Step 5).
+recognise them as `obsidian-task-grooming`'s sweep queue rather than work.
 
 ## Step 2 - Create a task
 
@@ -123,16 +123,17 @@ should read as finished work rather than as an abandoned draft.
 Deleting is right only because the task is one-time. Anything the user may
 want later - what was actually done, a measurement, a receipt - belongs in a
 note that outlives the task, so offer to move it before deleting rather than
-after. Step 5 sweeps the ones already sitting in the base.
+after. The ones already sitting in the base are swept by
+`obsidian-task-grooming`, not here.
 
 ## Step 4 - Complete a recurring task
 
 A recurring task is never left `done`; that is what makes it recur. Marking
 one `done` and stopping is still the most likely mistake in this skill, but it
 no longer hides: done tasks stay in the base, so a done row carrying a cadence
-is visible as the anomaly it is. Step 5 lists those rows for roll-forward and
-never deletes them - **`cadence` is what keeps a task out of the sweep**, which
-is one more reason never to clear it.
+is visible as the anomaly it is. `obsidian-task-grooming` lists those rows for
+roll-forward and never deletes them - **`cadence` is what keeps a task out of
+the sweep**, which is one more reason never to clear it.
 
 Due dates snap to the **end of a period**, computed from today rather than
 from `last done`. Worked from a completion on Monday 2026-08-17:
@@ -163,47 +164,22 @@ algorithm behind it, and the month-end and leap-year edges. It exists to stop
 you rolling the completion date forward by the interval instead of snapping
 to a period end - a drift that compounds every cycle.
 
-## Step 5 - Sweep completed one-time tasks
+## Step 5 - Sweeping the base belongs to grooming
 
-Because the base stopped filtering on `status`, finished one-time tasks stay
-in it instead of vanishing - which is the only reason they can be found and
-cleared at all. A row is a sweep candidate when **both** hold:
+Finished one-time tasks stay in the base rather than vanishing, and clearing
+them out is `obsidian-task-grooming`'s Step 4: it surveys the whole base, lists
+every candidate by name, and deletes on a single confirmation. Hand off to it
+rather than sweeping here.
 
-- `status` is `done`
-- `cadence` is empty
+The rule that decides what may go - **`cadence` empty means sweepable,
+`cadence` set means never delete, roll it forward instead** - lives there and
+nowhere else. Do not re-derive it in this skill; two copies of that guard are
+two things that can drift apart, and the failure mode is a deleted recurring
+schedule.
 
-Take both from the Step 1 query, never from the note text - the template
-writes `cadence:` as an empty key, so a test for a missing line matches
-nothing. See Gotchas.
-
-When `base:views` lists a `Sweep` view, `base:query ... view="Sweep"` returns
-exactly these rows and no others. A base without one is not a problem; filter
-the Step 1 rows on the two conditions above instead.
-
-| Row | Do |
-|---|---|
-| `done`, cadence empty | Delete - the task is finished for good |
-| `done`, cadence set | **Never delete.** A recurring task stuck in `done`; roll it forward per Step 4 |
-| Anything else | Leave it |
-
-`obsidian-task-grooming` reports these candidates during a review but never
-deletes one - the deletion only ever happens here, so the cadence guard above
-has a single home. Offer the sweep when the survey turns up candidates; do not
-run it unasked on every invocation. List every candidate by name, take one confirmation for the
-batch, then delete them one path at a time:
-
-```bash
-obsidian delete path="<path>"        # prints: Moved to trash: <path>
-```
-
-Use the `path` value from `base:query` verbatim rather than retyping it -
-paths are case-sensitive to the CLI (see Gotchas), and a mistyped one prints
-`Error: File "..." not found.` instead of deleting anything.
-
-Most one-time tasks are frontmatter and nothing else, so the note carries no
-history worth keeping. When a candidate does have a body, say so while listing
-it and let the user decide - a service log or a set of notes is the kind of
-thing that should outlive the task.
+Step 3 above is a different thing and stays here: it removes the one task the
+user finishes or abandons in front of you, named in the conversation. That is
+a single note, not a pass over the base.
 
 ## Step 6 - Answer what to work on
 
@@ -245,7 +221,7 @@ The CLI exits 0 on failure, so check the output text and then the data:
 
    | Absent from `base:query` | Meaning |
    |---|---|
-   | You deleted it in Step 3 or 5 | Correct - `obsidian read` on the path confirms it, printing `Error: File "..." not found.` |
+   | You deleted it in Step 3, or grooming swept it | Correct - `obsidian read` on the path confirms it, printing `Error: File "..." not found.` |
    | Anything else | **The note has no `type: task`** - the classic failure |
 
    The second is invisible from the note alone, which is why the read-back
@@ -255,7 +231,7 @@ The CLI exits 0 on failure, so check the output text and then the data:
 Never report a change as made on the strength of a silent command. Then give
 the note path, the fields changed, and their new values, quoting the
 read-back. For a roll-forward, state the new `due` and how it was computed.
-For a deletion or a sweep, name every note removed and say it is recoverable
+For a deletion, name every note removed and say it is recoverable
 from the vault trash. If a command printed `Error: `, say what did not happen.
 
 ## Gotchas
@@ -278,14 +254,14 @@ from the vault trash. If a command printed `Error: `, say what did not happen.
 - **`obsidian tasks` is a different system.** It lists checkbox tasks written
   inline in note bodies (`done`, `todo`, `status="<char>"`). This skill never
   uses it - a task here is a note with `type: task`, not a `- [ ]` line.
-- **The base holds done tasks too, and the sweep runs on them.** The filter
-  no longer excludes `status: done`, so `base:query` is the full inventory
-  rather than a list of open work. Drop done rows before ranking, and never
-  schedule one as if it were outstanding.
+- **The base holds done tasks too.** The filter no longer excludes
+  `status: done`, so `base:query` is the full inventory rather than a list of
+  open work. Drop done rows before ranking, and never schedule one as if it
+  were outstanding. Clearing them out is grooming's sweep, not this skill's.
 - **`cadence` is empty on a one-time task, not missing.** The template writes
   the key with no value, so `cadence:` appears on every task note and a test
-  for an absent line matches nothing - a sweep built that way deletes nothing
-  and reports success. `base:query` returns `null` for an empty key and for a
+  for an absent line matches nothing - a branch built that way sends every
+  task down the one-time path. `base:query` returns `null` for an empty key and for a
   genuinely absent one alike, which is why the queried value is the one to
   test.
 - **`obsidian delete` trashes by default; never pass `permanent`.** Plain
