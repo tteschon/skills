@@ -39,7 +39,7 @@ obsidian base:query path="<base path>" format=json
 ```
 
 **Test the values this returns, never the note text.** The task template writes
-`cadence:` as an empty key on every note, so a check for a missing line matches
+`frequency:` as an empty key on every note, so a check for a missing line matches
 nothing and reports a clean base no matter how much has drifted. `base:query`
 returns `null` for an empty key and a genuinely absent one alike, which is the
 only place the two look the same.
@@ -48,7 +48,7 @@ Below, "empty" means the queried value is `null` or `""`.
 
 ## Step 2 - Check A, unscheduled one-time tasks
 
-**Rule** - `status` is not `done`, `due` is empty, and `cadence` is empty.
+**Rule** - `status` is not `done`, `due` is empty, and `frequency` is empty.
 
 These are invisible to the schedule, not merely unprioritised. The base's
 `Today` and `This week` views both filter on `due != null`, so a task with no
@@ -68,7 +68,7 @@ A **recurring** task with an empty `due` is a different thing and not a defect
 
 ## Step 3 - Check B, stale active status
 
-**Rule** - `status` is `active`, `cadence` is set, `due` is in the future, and
+**Rule** - `status` is `active`, `frequency` is set, `due` is in the future, and
 `last done` is not empty.
 
 A correct roll-forward ends at `status: backlog`; that is the last property
@@ -77,11 +77,11 @@ documented lifecycle. It means the roll-forward ran and recomputed `due`, and
 only the status reset failed to stick.
 
 Confirm the arithmetic before calling it stale. A task whose `due` sits exactly
-one cadence interval past its `last done` was rolled forward, and the status is
+one interval past its `last done` was rolled forward, and the status is
 the only thing wrong with it:
 
 ```
-Crosstrek Oil Change    cadence: every 6 months
+Crosstrek Oil Change    frequency: FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1
   last done 2026-06-19    due 2026-12-19    <- exactly 6 months on, rolled forward
 ```
 
@@ -105,15 +105,15 @@ reason they can be found and cleared at all.
 
 | Row | Meaning | Do |
 |---|---|---|
-| `done`, `cadence` empty | A finished one-time task | Sweep it - delete after confirmation |
-| `done`, `cadence` set | A recurring task that has silently stopped recurring | **Never delete.** Report for `obsidian-tasks` Step 4 roll-forward |
+| `done`, `frequency` empty | A finished one-time task | Sweep it - delete after confirmation |
+| `done`, `frequency` set | A recurring task that has silently stopped recurring | **Never delete.** Report for `obsidian-tasks` Step 4 roll-forward |
 
-**`cadence` is what keeps a task out of the sweep.** A done row carrying a
-cadence is a recurring chore that was marked finished and never rolled
+**`frequency` is what keeps a task out of the sweep.** A done row carrying a
+rule is a recurring chore that was marked finished and never rolled
 forward; deleting it destroys the schedule instead of repairing it. This guard
 lives here and only here - never re-implement it elsewhere. It is also the
 finding worth naming out loud, because nothing else in the vault will ever
-flag it: the row sits in the base looking finished, its cadence intact, and it
+flag it: the row sits in the base looking finished, its rule intact, and it
 will simply never come due again.
 
 When `base:views` lists a `Sweep` view, `base:query ... view="Sweep"` returns
@@ -158,8 +158,8 @@ is a result, and silence reads as an unrun check.
 
 ## Gotchas
 
-- **`cadence` is empty on a one-time task, not missing.** The template writes
-  the key on every note, so `cadence:` appears everywhere and a test for an
+- **`frequency` is empty on a one-time task, not missing.** The template
+  writes the key on every note, so `frequency:` appears everywhere and a test for an
   absent line matches nothing - a grooming run built that way finds zero
   problems and reports success. Test the value from `base:query`.
 - **Never pass `type=` to `property:set`.** It rewrites the property's type
@@ -172,7 +172,11 @@ is a result, and silence reads as an unrun check.
 - **`obsidian delete` trashes by default; never pass `permanent`.** Plain
   `delete` prints `Moved to trash: <path>` and the note stays recoverable from
   the vault trash, which is what makes the sweep safe to confirm in a batch.
-- **Sweep only on the queried `cadence`, never on the note text.** A recurring
+- **An empty `frequency` and `frequency: ""` are different to Bases.** A bare
+  key is `null`; an empty string is not, so a `frequency != null` filter
+  matches one-time tasks and a view built on it returns wrong rows silently.
+  If a sweep candidate list looks too short, check for `""` in the notes.
+- **Sweep only on the queried `frequency`, never on the note text.** A recurring
   task read the wrong way looks one-time, and the sweep deletes the schedule.
   This is the one place in the skill where a bad read destroys work.
 - **Never read task state from the Kanban board.** It does not write back to

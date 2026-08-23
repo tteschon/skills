@@ -19,7 +19,7 @@ template, which is the only thing that should ever write `created`.
 | `priority` | text | `low`, `medium`, `high` |
 | `category` | unregistered | Free text, but reuse an existing value |
 | `last done` | **date** | Latest completion only; the body log holds the history |
-| `cadence` | text | **Set = recurring, empty = one-time.** Parsed by Step 4, and what keeps a task out of the grooming sweep |
+| `frequency` | text | An RFC 5545 `RRULE` value. **Set = recurring, empty = one-time.** Evaluated in Step 4, and what keeps a task out of the grooming sweep |
 | `asset` | unregistered | Optional wikilink to the thing serviced, e.g. `"[[Cub Cadet Ultima 54 Mower]]"` |
 
 "Declared type" is what `.obsidian/types.json` registers. Unregistered
@@ -52,24 +52,32 @@ obsidian property:read name=<field> path="<a task note>"
 
 ## Recurring versus one-time
 
-`cadence` is the only thing that separates the two kinds of task. There is no
-`recurring` flag; a task recurs if and only if it carries a cadence.
+`frequency` is the only thing that separates the two kinds of task. There is
+no `recurring` flag; a task recurs if and only if it carries a rule.
 
 | | One-time | Recurring |
 |---|---|---|
-| `cadence` | empty | set |
+| `frequency` | empty | an `RRULE` value |
 | On completion | `status: done`, `last done` = today | `last done` = today, `due` recomputed, `status` back to `backlog` |
 | Afterwards | Note deleted to the vault trash | Stays, with a new due date |
 
-`cadence` is **empty, not absent**, on a one-time task - the template writes
+`frequency` is **empty, not absent**, on a one-time task - the template writes
 the key on every note. Nothing distinguishes the two kinds in the file text,
 so read the value, not the presence of the line. `base:query` returns `null`
 either way, which is the reliable place to test it.
 
+> **An empty key and an empty string are not the same to Bases.** The template
+> writes a bare `frequency:`, which is `null`. Writing `property:set
+> name=frequency value=""` produces `frequency: ""`, which is **not** null - a
+> `frequency != null` filter then matches every one-time task, and the base
+> view returns wrong rows with no error. Verified: the same probe returned 29
+> rows with `""` and 11 with a bare key. Never seed the empty key through
+> `property:set`; let the template write it.
+
 That one field carries more weight than its size suggests, because it is also
 what protects a task from deletion. A recurring task is never left in `done`;
-if one is, it has stopped recurring, and the cadence is the only reason the
-sweep passes it over instead of removing it.
+if one is, it has stopped recurring, and the rule is the only reason the sweep
+passes it over instead of removing it.
 
 ## Dates are dates
 
@@ -104,7 +112,7 @@ every value in one call.
 | `status` | `backlog` dominates; `active` for in-flight; `done` on finished one-time tasks awaiting the sweep |
 | `priority` | `low` and `medium` only - **no task carries `high`**, so priority ranks almost nothing as used |
 | `category` | `yard`, `home`, `errands`, `vehicle`, `health` |
-| `cadence` | `weekly`, `every 6 months`, `annual` - empty on one-time tasks |
+| `frequency` | `FREQ=WEEKLY;BYDAY=MO`, `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1`, `FREQ=YEARLY` - empty on one-time tasks |
 | `asset` | wikilinks to equipment notes; absent on most tasks |
 
 Some notes carry no `category` at all. That is a gap to ask about, not a

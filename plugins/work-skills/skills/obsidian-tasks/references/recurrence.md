@@ -1,56 +1,112 @@
 # Computing the next due date
 
-Read this before computing a `due` date for a recurring task. The rules snap
-to the **end of a period**; rolling the completion date forward by the
-interval instead - `today + 7 days` for a weekly chore - is the failure this
-file exists to prevent, and it drifts the schedule a little further every
-cycle.
+Read this before computing a `due` date for a recurring task.
 
-`SKILL.md` Step 4 carries the worked answers for the common cadences. This is
-the derivation and the edges.
+Recurrence is stored in one property, `frequency`, holding an **RFC 5545
+`RRULE` value**:
 
-## Cadence vocabulary
+```yaml
+frequency: FREQ=WEEKLY;INTERVAL=2;BYDAY=MO
+```
 
-| Cadence | Rule |
+`INTERVAL`, `BYDAY`, `BYMONTHDAY`, `UNTIL`, and `COUNT` all live inside that
+string. There are no companion fields.
+
+## Never compute this by hand
+
+**Do not parse or evaluate an RRULE in shell, and do not reimplement the date
+arithmetic.** RFC 5545's `BY*` parts each either *expand* or *limit* the set
+depending on the `FREQ` they sit under, and getting that backwards produces a
+rule that looks right and yields the wrong dates. See the trap below.
+
+Call a real evaluator:
+
+```bash
+uv run --with python-dateutil python3 -c '
+import sys, datetime as d
+from dateutil.rrule import rrulestr
+rule, due, today = sys.argv[1], sys.argv[2], sys.argv[3]
+r = rrulestr(rule, dtstart=d.datetime.fromisoformat(due))
+print(r.after(d.datetime.fromisoformat(today)).date().isoformat())
+' "<frequency>" "<due>" "<today>"
+```
+
+This is why `SKILL.md` preflight requires Python in addition to the obsidian
+CLI. `dateutil` is not a project dependency; `uv run --with` supplies it per
+invocation.
+
+## The two rules that define the model
+
+**1. The anchor is `due`.** RRULE has no meaning without a `DTSTART`; this
+system uses the task's current `due` date as that anchor.
+
+**2. Roll-forward is the next occurrence strictly after today.**
+`rule.after(today)` — today being the completion date.
+
+Rule 2 is what makes the model tolerant of late completions *without* a second
+field. The grid is fixed by the anchor, so a late completion lands on the next
+scheduled slot rather than shifting the whole series. Verified against
+`FREQ=WEEKLY;INTERVAL=2;BYDAY=MO` anchored 2026-08-24:
+
+| Completed | New `due` | |
+|---|---|---|
+| 2026-08-24 | 2026-09-07 | on time |
+| 2026-09-02 | 2026-09-07 | 9 days late; parity held, series not shifted |
+| 2026-09-08 | 2026-09-21 | a whole cycle missed - it skips rather than sliding |
+
+## The anchor must sit on its own grid
+
+`due` has to be a member of the series its own `frequency` generates. If it is
+not, the first roll-forward returns a short cycle - the next grid point, which
+may be days away instead of months.
+
+Assert it after every write:
+
+```python
+rrulestr(frequency, dtstart=due)[0].date() == due     # must be True
+```
+
+Real examples from the migration, before they were corrected: an oil change
+with `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1` anchored at 2026-12-19 rolled
+forward to 2026-12-31 - twelve days, not six months. A `FREQ=WEEKLY;BYDAY=SU`
+task anchored on a Friday rolled forward two days.
+
+When a task's `due` is off-grid, snap it to `rule[0]` before anything else.
+
+## Writing a rule
+
+| Intent | `frequency` |
 |---|---|
-| `weekly` | End of next week (Sunday) |
-| `monthly` | Last day of next month |
-| `every N months` | Last day of the month N months out |
-| `annual` | Last day of the same month next year |
+| Every Monday | `FREQ=WEEKLY;BYDAY=MO` |
+| Every other Monday | `FREQ=WEEKLY;INTERVAL=2;BYDAY=MO` |
+| End of each week | `FREQ=WEEKLY;BYDAY=SU` |
+| Last day of each month | `FREQ=MONTHLY;BYMONTHDAY=-1` |
+| Last day, every 6 months | `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1` |
+| Annually, on the anniversary | `FREQ=YEARLY` |
+| First Saturday of the month | `FREQ=MONTHLY;BYDAY=1SA` |
+| Every Monday through October | `FREQ=WEEKLY;BYDAY=MO;UNTIL=20261031T000000` |
 
-`annual` is the spelling in use; treat `annually` and `yearly` as the same
-thing if they appear. Anything else is unparseable - see below.
+`BYDAY` takes a position prefix: `1SA` is the first Saturday, `-1FR` the last
+Friday. `BYMONTHDAY=-1` is the last day of the month.
 
-## The algorithms
+### The `FREQ=YEARLY;BYMONTHDAY=-1` trap
 
-Compute from **today**, the completion date, never from `last done`:
+The obvious spelling of "annually, on the last day of the month" is wrong.
+Under `FREQ=YEARLY`, `BYMONTHDAY` **expands**, so that rule yields the last day
+of *every* month - a monthly rule wearing a yearly label:
 
 ```
-weekly:   this_sunday = today + (6 - today.weekday())   # Mon=0 .. Sun=6
-          due = this_sunday + 7 days                    # end of NEXT week
-
-monthly / every N months / annual:
-          target = today's month + N months             # monthly N=1, annual N=12
-          due = last calendar day of target month
+FREQ=YEARLY;BYMONTHDAY=-1   ->  2026-11-30, 2026-12-31, 2027-01-31, 2027-02-28 ...
+FREQ=YEARLY                 ->  2026-11-30, 2027-11-30, 2028-11-30 ...
 ```
 
-## Verified edge cases
+Plain `FREQ=YEARLY` recurs on the anchor's anniversary, which is what "annual"
+means here. This is the concrete reason for the no-hand-parsing rule above:
+the wrong spelling is the intuitive one, and nothing reports an error.
 
-| Completed | Cadence | New `due` | Why |
-|---|---|---|---|
-| Sun 2026-08-23 | `weekly` | 2026-08-30 | A Sunday completion still lands on the *following* Sunday, not the same day |
-| Sat 2026-08-22 | `weekly` | 2026-08-30 | Same week, same answer |
-| Thu 2026-12-31 | `weekly` | 2027-01-10 | Year rollover |
-| 2026-08-31 | `every 6 months` | 2027-02-28 | Target month is shorter than the source month |
-| 2027-08-31 | `every 6 months` | 2028-02-29 | Leap year |
-| 2026-12-15 | `monthly` | 2027-01-31 | Year rollover |
+## An empty `frequency` is one-time
 
-Because `due` comes from the completion date, a recurring task with an empty
-`last done` is not a problem - it simply has no due date until the first time
-it is completed. Never backfill a `last done` to make the arithmetic work.
-
-## Cadences these rules do not cover
-
-`seasonally`, or anything that will not parse: set `last done` and
-`status: backlog`, leave `due` empty, and say so in the report. Do not invent
-an interval.
+A task recurs if and only if `frequency` has a value. Empty means one-time,
+which also means sweepable - see `schema.md`. A recurring task with an empty
+`due` is not a problem; it simply has no due date until first completed. Never
+backfill `last done` to make arithmetic work.

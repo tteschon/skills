@@ -1,6 +1,6 @@
 ---
 name: obsidian-tasks
-description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, and cadence. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or cadence, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks inline in note bodies - what the obsidian tasks command lists - do not use it to review the whole base or to sweep out finished tasks - groom my tasks, what is stale, clear out my done tasks - which is obsidian-task-grooming; and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
+description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, and an RRULE frequency. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or frequency, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks inline in note bodies - what the obsidian tasks command lists - do not use it to review the whole base or to sweep out finished tasks - groom my tasks, what is stale - which is obsidian-task-grooming; and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
 compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file
 ---
 
@@ -23,9 +23,14 @@ exit codes cannot be trusted; do not re-derive it. Run its check, then
 
 ```bash
 command -v obsidian          # exit 1 - stop, not fixable from the shell
+command -v uv                # needed to evaluate RRULEs in Step 4
 obsidian vault info=name     # confirm the right vault
 obsidian bases               # find the task base
 ```
+
+Rolling a recurring task forward evaluates an RFC 5545 `RRULE` and so needs
+Python as well as the CLI - `uv run --with python-dateutil` supplies it per
+invocation, with no project dependency. Every other step is shell only.
 
 | Found | Do |
 |---|---|
@@ -87,7 +92,7 @@ confusing here, because `type` is also the property that marks a task:
 `name=type` is correct, `type=text` is the destructive one.
 
 Ask for `category` and `priority` when the user did not say; leave `due` and
-`cadence` empty rather than inventing them. If `base:create` fails, fall back
+`frequency` empty rather than inventing them. If `base:create` fails, fall back
 to `create name="<name>" path="<folder>"` then
 `property:set name=type value=task` - the note is only a task once it has
 that property.
@@ -104,9 +109,9 @@ The canonical set is `backlog`, `active`, `done`:
 obsidian property:set name=status value=active path="<path>"
 ```
 
-**Check `cadence` before writing `done`** - it separates the two kinds of
+**Check `frequency` before writing `done`** - it separates the two kinds of
 task, and the branch is not recoverable by reading the note afterwards. A
-task *with* a cadence goes to Step 4 and never gets `status: done`. A task
+task *with* a rule goes to Step 4 and never gets `status: done`. A task
 *without* one is finished for good here, and finishing it removes the note:
 
 ```bash
@@ -130,20 +135,33 @@ after. The ones already sitting in the base are swept by
 
 A recurring task is never left `done`; that is what makes it recur. Marking
 one `done` and stopping is still the most likely mistake in this skill, but it
-no longer hides: done tasks stay in the base, so a done row carrying a cadence
-is visible as the anomaly it is. `obsidian-task-grooming` lists those rows for
-roll-forward and never deletes them - **`cadence` is what keeps a task out of
-the sweep**, which is one more reason never to clear it.
+no longer hides: done tasks stay in the base, so a done row carrying a
+`frequency` is visible as the anomaly it is. `obsidian-task-grooming` lists
+those rows for roll-forward and never deletes them - **`frequency` is what
+keeps a task out of the sweep**, which is one more reason never to clear it.
 
-Due dates snap to the **end of a period**, computed from today rather than
-from `last done`. Worked from a completion on Monday 2026-08-17:
+`frequency` holds an RFC 5545 `RRULE`. The new `due` is the next occurrence
+**strictly after today**, anchored on the task's current `due`:
 
-| Cadence | New `due` |
-|---|---|
-| `weekly` | 2026-08-30 (Sunday) |
-| `monthly` | 2026-09-30 |
-| `every 6 months` | 2027-02-28 |
-| `annual` | 2027-08-31 |
+```bash
+uv run --with python-dateutil python3 -c '
+import sys, datetime as d
+from dateutil.rrule import rrulestr
+r = rrulestr(sys.argv[1], dtstart=d.datetime.fromisoformat(sys.argv[2]))
+print(r.after(d.datetime.fromisoformat(sys.argv[3])).date().isoformat())
+' "<frequency>" "<current due>" "<today>"
+```
+
+**Never compute this by hand.** RRULE's `BY*` parts expand or limit depending
+on the `FREQ` above them, and the intuitive spelling of "annually on the last
+day of the month" - `FREQ=YEARLY;BYMONTHDAY=-1` - silently yields a *monthly*
+series. `references/recurrence.md` has the value grammar, the traps, and the
+verified cases.
+
+Anchoring on `due` is what makes a late completion land on the next scheduled
+slot instead of shifting every future cycle. Confirm afterwards that the new
+`due` is itself on the rule's grid - an off-grid anchor rolls forward by days
+instead of months.
 
 Then write three properties, in this order, and append to the body:
 
@@ -159,10 +177,10 @@ part number, what was done - goes on the body log line under a
 `## Service log` heading, **never** into those two fields. The body log also
 keeps the history that `last done` overwrites.
 
-Read `references/recurrence.md` for any cadence outside that table, the
-algorithm behind it, and the month-end and leap-year edges. It exists to stop
-you rolling the completion date forward by the interval instead of snapping
-to a period end - a drift that compounds every cycle.
+Read `references/recurrence.md` before writing or editing any rule. It holds
+the `RRULE` value grammar, the evaluator invocation, the grid-alignment
+assertion, and the expand-versus-limit traps that make hand-computed dates
+wrong without erroring.
 
 ## Step 5 - Sweeping the base belongs to grooming
 
@@ -171,8 +189,8 @@ them out is `obsidian-task-grooming`'s Step 4: it surveys the whole base, lists
 every candidate by name, and deletes on a single confirmation. Hand off to it
 rather than sweeping here.
 
-The rule that decides what may go - **`cadence` empty means sweepable,
-`cadence` set means never delete, roll it forward instead** - lives there and
+The rule that decides what may go - **`frequency` empty means sweepable,
+`frequency` set means never delete, roll it forward instead** - lives there and
 nowhere else. Do not re-derive it in this skill; two copies of that guard are
 two things that can drift apart, and the failure mode is a deleted recurring
 schedule.
@@ -258,12 +276,21 @@ from the vault trash. If a command printed `Error: `, say what did not happen.
   `status: done`, so `base:query` is the full inventory rather than a list of
   open work. Drop done rows before ranking, and never schedule one as if it
   were outstanding. Clearing them out is grooming's sweep, not this skill's.
-- **`cadence` is empty on a one-time task, not missing.** The template writes
-  the key with no value, so `cadence:` appears on every task note and a test
-  for an absent line matches nothing - a branch built that way sends every
-  task down the one-time path. `base:query` returns `null` for an empty key and for a
-  genuinely absent one alike, which is why the queried value is the one to
-  test.
+- **`frequency` is empty on a one-time task, not missing.** The template
+  writes the key with no value, so `frequency:` appears on every task note and
+  a test for an absent line matches nothing - a branch built that way sends
+  every task down the one-time path. `base:query` returns `null` for an empty
+  key and for a genuinely absent one alike, which is why the queried value is
+  the one to test.
+- **Never seed an empty `frequency` with `property:set value=""`.** That
+  writes `frequency: ""`, and an empty string is **not** `null` to Bases, so
+  every `frequency != null` filter starts matching one-time tasks and the view
+  returns wrong rows with no error. The template's bare `frequency:` key is
+  null; let the template write it.
+- **A new property is invisible to `base:query` until the base names it.**
+  Results are keyed by the view's columns, so a property written to every note
+  reads back as absent until it is added to the `.base` file. Verify a new
+  field against `obsidian read`, or update the base first.
 - **`obsidian delete` trashes by default; never pass `permanent`.** Plain
   `delete` prints `Moved to trash: <path>` and the note stays recoverable from
   the vault trash until the user empties it. `permanent` skips that, and
