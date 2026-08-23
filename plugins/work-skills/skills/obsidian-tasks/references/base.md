@@ -64,7 +64,8 @@ Two filter clauses, both load-bearing:
 `status != "done"`, which dropped a completed one-time task out of the base
 the moment it was finished - tidy to look at, but it also put the note beyond
 the reach of `base:query`, so nothing could ever find it again to clean it up.
-Keeping done tasks in the base is what makes `SKILL.md` Step 5 possible.
+Keeping done tasks in the base is what makes the `obsidian-task-grooming`
+sweep possible.
 
 The formulas do the date arithmetic once, in the vault, so every run reads
 the same numbers instead of recomputing them. The views answer the daily and

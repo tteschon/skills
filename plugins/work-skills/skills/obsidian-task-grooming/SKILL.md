@@ -1,19 +1,19 @@
 ---
 name: obsidian-task-grooming
-description: Reviews the health of an Obsidian note-per-task base and reports what has drifted - one-time tasks with no due date, recurring tasks left in active after a roll-forward already reset their schedule, and finished tasks waiting to be deleted. Use this skill when the user wants a periodic look at the task system as a whole rather than a change to one task - groom my tasks, review my task backlog, audit my tasks, what is stale, what has gone unscheduled, is my task list healthy, why does this task never show up in my Today view. Also use it when the user mentions task hygiene or a stale status. This skill reads and makes non-destructive property corrections only - it never deletes a note. Adding a task, completing one, rolling a recurring chore forward, deleting a finished one, and asking what to work on next all belong to obsidian-tasks; general vault work belongs to obsidian-vault.
+description: Reviews the health of an Obsidian note-per-task base and reports what has drifted - one-time tasks with no due date, recurring tasks left in active after a roll-forward already reset their schedule, and finished one-time tasks waiting to be swept out. Use this skill when the user wants a periodic look at the task system as a whole rather than a change to one task - groom my tasks, review my task backlog, audit my tasks, what is stale, what has gone unscheduled, is my task list healthy, why does this task never show up in my Today view, clear out my finished tasks, sweep the done ones. Also use it when the user mentions task hygiene or a stale status. This skill owns the sweep - it deletes finished one-time tasks to the vault trash, naming every note and taking a confirmation first. Adding a task, completing one, rolling a recurring chore forward, and asking what to work on next all belong to obsidian-tasks; general vault work belongs to obsidian-vault.
 compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file that does not filter out completed tasks
 ---
 
 # Obsidian Task Grooming
 
 Review a note-per-task base as a whole and report what has drifted -
-unscheduled work, stale statuses, and finished tasks waiting to be deleted.
+unscheduled work, stale statuses, and finished tasks waiting to be swept out.
 
-**This skill never deletes a note.** Removing a finished task belongs to
-`obsidian-tasks`, which owns every write that completes or removes work. The
-split is deliberate: the guard that stops a recurring task from being deleted
-lives there, and it only stays correct while it has exactly one home. Grooming
-reports what should go and hands off.
+**This skill owns the sweep.** Deleting a finished one-time task happens here
+and nowhere else, which is what keeps the guard in Step 4 - the one that stops
+a recurring task from being deleted - in exactly one place. `obsidian-tasks`
+still deletes the single task the user abandons mid-conversation (its Step 3),
+but it does not sweep the base; that is this skill's job.
 
 ## Before you start
 
@@ -98,31 +98,63 @@ from "being worked on right now". Present the finding and let the user decide.
 Touch `status` and nothing else. `due` and `last done` are already correct on
 these rows - rewriting them re-rolls a schedule that was right.
 
-## Step 4 - Report what needs deleting; delete nothing
+## Step 4 - Check C, sweep finished one-time tasks
+
+Finished tasks stay in the base rather than vanishing - that is the only
+reason they can be found and cleared at all.
 
 | Row | Meaning | Do |
 |---|---|---|
-| `done`, `cadence` empty | A finished one-time task | Report the count. `obsidian-tasks` Step 5 deletes them |
-| `done`, `cadence` set | A recurring task that has silently stopped recurring | Report as an anomaly for `obsidian-tasks` Step 4 roll-forward |
+| `done`, `cadence` empty | A finished one-time task | Sweep it - delete after confirmation |
+| `done`, `cadence` set | A recurring task that has silently stopped recurring | **Never delete.** Report for `obsidian-tasks` Step 4 roll-forward |
 
-The second is the one worth naming out loud. Nothing else in the vault will
-ever flag it: it sits in the base looking finished, its cadence intact, and it
+**`cadence` is what keeps a task out of the sweep.** A done row carrying a
+cadence is a recurring chore that was marked finished and never rolled
+forward; deleting it destroys the schedule instead of repairing it. This guard
+lives here and only here - never re-implement it elsewhere. It is also the
+finding worth naming out loud, because nothing else in the vault will ever
+flag it: the row sits in the base looking finished, its cadence intact, and it
 will simply never come due again.
+
+When `base:views` lists a `Sweep` view, `base:query ... view="Sweep"` returns
+exactly the deletable rows and no others. A base without one is not a problem;
+filter the Step 1 rows on the two conditions instead.
+
+**List every candidate by name and take one confirmation for the batch.**
+Grooming is a review, so the sweep is offered when candidates turn up, never
+run unasked. Then delete them one path at a time:
+
+```bash
+obsidian delete path="<path>"        # prints: Moved to trash: <path>
+```
+
+Use the `path` value from `base:query` verbatim rather than retyping it - a
+mistyped path prints `Error: File "..." not found.` instead of deleting.
+
+Most one-time tasks are frontmatter and nothing else, so the note carries no
+history worth keeping. When a candidate does have a body, say so while listing
+it and let the user decide - a service log, a measurement, or a receipt is the
+kind of thing that should outlive the task, and it should be moved somewhere
+that survives before the note goes.
 
 ## Step 5 - Verify, then report
 
 The CLI exits 0 on failure, so check the output text and then the data:
 
-1. Each write prints `Set <property>: <value>`. A line starting with `Error: `
-   is a failure, whatever the exit code said.
+1. Each command prints `Set <property>: <value>` or `Moved to trash: <path>`.
+   A line starting with `Error: ` is a failure, whatever the exit code said -
+   including `Error: File "..." not found.`, which is what a delete against a
+   mistyped path prints in place of doing anything.
 2. Re-run the Step 1 query. Confirm every accepted change took, and that the
-   row count is unchanged - grooming never adds or removes a task, so a count
-   that moved means something happened that this skill did not intend.
+   row count dropped by exactly the number of notes swept - no more, and never
+   for a task nobody agreed to remove. A count that moved by any other amount
+   means something happened that this skill did not intend.
 
 Report it as a review, not as a changelog: how many tasks were surveyed, what
 each check found, what the user accepted, and what was left alone on purpose.
-A check that found nothing still earns a line - "no recurring task is stuck in
-`done`" is a result, and silence reads as an unrun check.
+Name every note swept and say it is recoverable from the vault trash. A check
+that found nothing still earns a line - "no recurring task is stuck in `done`"
+is a result, and silence reads as an unrun check.
 
 ## Gotchas
 
@@ -137,9 +169,12 @@ A check that found nothing still earns a line - "no recurring task is stuck in
 - **Paths are case-sensitive to the CLI but not to the macOS disk.** Take each
   path from the `path` key of `base:query` verbatim; a retyped `Tasks/` for
   `tasks/` fails with `Base file not found` or `Error: File "..." not found.`
-- **This skill has no reason to call `obsidian delete`.** If a task needs
-  removing, hand off to `obsidian-tasks`. Two skills that can both delete are
-  two places for the `cadence` guard to drift.
+- **`obsidian delete` trashes by default; never pass `permanent`.** Plain
+  `delete` prints `Moved to trash: <path>` and the note stays recoverable from
+  the vault trash, which is what makes the sweep safe to confirm in a batch.
+- **Sweep only on the queried `cadence`, never on the note text.** A recurring
+  task read the wrong way looks one-time, and the sweep deletes the schedule.
+  This is the one place in the skill where a bad read destroys work.
 - **Never read task state from the Kanban board.** It does not write back to
   frontmatter, so its columns disagree with `status` by a known and growing
   margin. `obsidian-tasks/references/schema.md` measures the drift.
