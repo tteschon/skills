@@ -1,6 +1,6 @@
 ---
 name: obsidian-vault
-description: Reads, searches, and edits an Obsidian vault through the obsidian command line interface - notes, daily notes, frontmatter properties, tags, backlinks, and templates. Use this skill when the user wants to find something in their notes, read or summarize a note, capture a thought into today's daily note, create or append to a note, retag or move files, or trace what links to what. Also use it when the user mentions Obsidian, their vault, a daily note, a wikilink, or the obsidian CLI - and when they say things like "add this to my notes", "what did I write about X", or "put that in today's note" without naming the tool. Do not use it for Markdown files outside a vault, or to edit this repository's own docs - the ordinary file tools are better for those. For a vault where each task is its own note with status, due, priority, and frequency frontmatter, use obsidian-tasks instead.
+description: Reads, searches, and edits an Obsidian vault through the obsidian command line interface - notes, daily notes, frontmatter properties, tags, backlinks, and templates. Use this skill when the user wants to find something in their notes, read or summarize a note, capture a thought into today's daily note, create or append to a note, retag or move files, or trace what links to what. Also use it when the user mentions Obsidian, their vault, a daily note, a wikilink, or the obsidian CLI - and when they say things like "add this to my notes", "what did I write about X", or "put that in today's note" without naming the tool. Do not use it for Markdown files outside a vault, or to edit this repository's own docs - the ordinary file tools are better for those. For a vault where each task is its own note with a done checkbox, due, priority, and frequency frontmatter, use obsidian-tasks instead.
 compatibility: Requires the obsidian CLI - Obsidian desktop 1.12.7+ with Settings - General - Command line interface enabled, and the app running
 ---
 
@@ -145,7 +145,7 @@ task - read the `line` from that output and feed it straight back as
 `ref=<file>:<line>`. Do not count lines by hand from a `read`; frontmatter
 and the file's own offsets will not agree with the index. These are checkbox
 tasks written inside note bodies. A vault where each task is a separate note
-with `status` and `due` frontmatter is a different system - use
+with `done` and `due` frontmatter is a different system - use
 `obsidian-tasks` for that.
 
 **Omit `type=` on `property:set` unless deliberately registering a property's

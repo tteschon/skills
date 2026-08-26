@@ -1,16 +1,17 @@
 ---
 name: obsidian-task-grooming
-description: Reviews the health of an Obsidian note-per-task base and reports what has drifted - one-time tasks with no due date, recurring tasks left in active after a roll-forward already reset their schedule, and finished one-time tasks waiting to be swept out. Use this skill when the user wants a periodic look at the task system as a whole rather than a change to one task - groom my tasks, review my task backlog, audit my tasks, what is stale, what has gone unscheduled, is my task list healthy, why does this task never show up in my Today view, clear out my finished tasks, sweep the done ones. Also use it when the user mentions task hygiene or a stale status. This skill owns the sweep - it deletes finished one-time tasks to the vault trash, naming every note and taking a confirmation first. Adding a task, completing one, rolling a recurring chore forward, and asking what to work on next all belong to obsidian-tasks; general vault work belongs to obsidian-vault.
+description: Reviews the health of an Obsidian note-per-task base and reports what has drifted - one-time tasks with no due date, recurring tasks that have silently stopped recurring, and finished one-time tasks waiting to be swept out. Use this skill when the user wants a periodic look at the task system as a whole rather than a change to one task - groom my tasks, review my task backlog, audit my tasks, what is stale, what has gone unscheduled, is my task list healthy, why does this task never show up in my Today view, clear out my finished tasks, sweep the done ones. Also use it when the user mentions task hygiene. This skill owns the sweep - it deletes finished one-time tasks to the vault trash, naming every note and taking a confirmation first. Adding a task, completing one, rolling a recurring chore forward, and asking what to work on next all belong to obsidian-tasks; general vault work belongs to obsidian-vault.
 compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file that does not filter out completed tasks
 ---
 
 # Obsidian Task Grooming
 
 Review a note-per-task base as a whole and report what has drifted -
-unscheduled work, stale statuses, and finished tasks waiting to be swept out.
+unscheduled work, recurring chores that have stopped recurring, and finished
+tasks waiting to be swept out.
 
 **This skill owns the sweep.** Deleting a finished one-time task happens here
-and nowhere else, which is what keeps the guard in Step 4 - the one that stops
+and nowhere else, which is what keeps the guard in Step 3 - the one that stops
 a recurring task from being deleted - in exactly one place. `obsidian-tasks`
 still deletes the single task the user abandons mid-conversation (its Step 3),
 but it does not sweep the base; that is this skill's job.
@@ -48,7 +49,7 @@ Below, "empty" means the queried value is `null` or `""`.
 
 ## Step 2 - Check A, unscheduled one-time tasks
 
-**Rule** - `status` is not `done`, `due` is empty, and `frequency` is empty.
+**Rule** - `done` is not true, `due` is empty, and `frequency` is empty.
 
 These are invisible to the schedule, not merely unprioritised. The base's
 `Today` and `This week` views both filter on `due != null`, so a task with no
@@ -66,47 +67,15 @@ A **recurring** task with an empty `due` is a different thing and not a defect
 - it is waiting on its first completion, which is exactly what the base's
 `Needs attention` view collects. List those separately and say why.
 
-## Step 3 - Check B, stale active status
-
-**Rule** - `status` is `active`, `frequency` is set, `due` is in the future, and
-`last done` is not empty.
-
-A correct roll-forward ends at `status: backlog`; that is the last property
-write in `obsidian-tasks` Step 4. So this combination cannot be produced by the
-documented lifecycle. It means the roll-forward ran and recomputed `due`, and
-only the status reset failed to stick.
-
-Confirm the arithmetic before calling it stale. A task whose `due` sits exactly
-one interval past its `last done` was rolled forward, and the status is
-the only thing wrong with it:
-
-```
-Crosstrek Oil Change    frequency: FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1
-  last done 2026-06-19    due 2026-12-19    <- exactly 6 months on, rolled forward
-```
-
-Offer the reset, taking one confirmation for the batch:
-
-```bash
-obsidian property:set name=status value=backlog path="<path>"
-```
-
-**Ask rather than assume.** `active` is also what a genuinely in-flight task
-looks like, and nothing in the data separates "left behind by a roll-forward"
-from "being worked on right now". Present the finding and let the user decide.
-
-Touch `status` and nothing else. `due` and `last done` are already correct on
-these rows - rewriting them re-rolls a schedule that was right.
-
-## Step 4 - Check C, sweep finished one-time tasks
+## Step 3 - Check B, sweep finished one-time tasks
 
 Finished tasks stay in the base rather than vanishing - that is the only
 reason they can be found and cleared at all.
 
 | Row | Meaning | Do |
 |---|---|---|
-| `done`, `frequency` empty | A finished one-time task | Sweep it - delete after confirmation |
-| `done`, `frequency` set | A recurring task that has silently stopped recurring | **Never delete.** Report for `obsidian-tasks` Step 4 roll-forward |
+| `done: true`, `frequency` empty | A finished one-time task | Sweep it - delete after confirmation |
+| `done: true`, `frequency` set | A recurring task that has silently stopped recurring | **Never delete.** Report for `obsidian-tasks` Step 4 roll-forward |
 
 **`frequency` is what keeps a task out of the sweep.** A done row carrying a
 rule is a recurring chore that was marked finished and never rolled
@@ -137,7 +106,7 @@ it and let the user decide - a service log, a measurement, or a receipt is the
 kind of thing that should outlive the task, and it should be moved somewhere
 that survives before the note goes.
 
-## Step 5 - Verify, then report
+## Step 4 - Verify, then report
 
 The CLI exits 0 on failure, so check the output text and then the data:
 
@@ -179,6 +148,12 @@ is a result, and silence reads as an unrun check.
 - **Sweep only on the queried `frequency`, never on the note text.** A recurring
   task read the wrong way looks one-time, and the sweep deletes the schedule.
   This is the one place in the skill where a bad read destroys work.
+- **`base:query` returns `done` as a *string*, and `"false"` is truthy.**
+  A completed task reads back as `'true'`, an open one as `'false'` - both
+  non-empty strings. Testing `if row['done']:` marks **every** task done, so a
+  sweep built that way proposes deleting the entire base. Test
+  `row['done'] in (True, 'true')`. Verified against the live vault: the naive
+  test counted 29 of 29 tasks as done when only one was.
 - **Never read task state from the Kanban board.** It does not write back to
-  frontmatter, so its columns disagree with `status` by a known and growing
+  frontmatter, so its columns disagree with `done` by a known and growing
   margin. `obsidian-tasks/references/schema.md` measures the drift.

@@ -1,6 +1,6 @@
 ---
 name: obsidian-tasks
-description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying status, due, priority, category, and an RRULE frequency. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's status or frequency, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks inline in note bodies - what the obsidian tasks command lists - do not use it to review the whole base or to sweep out finished tasks - groom my tasks, what is stale - which is obsidian-task-grooming; and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
+description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying a done checkbox, due, priority, category, and an RRULE frequency. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's done state or frequency, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks inline in note bodies - what the obsidian tasks command lists - do not use it to review the whole base or to sweep out finished tasks - groom my tasks, what is stale - which is obsidian-task-grooming; and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
 compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file
 ---
 
@@ -53,7 +53,7 @@ obsidian base:query path="<base path>" format=json
 ```
 
 One object per task, keyed by the base view's columns. **The keys are the
-schema** - a new task should carry the same ones. Never assume a status from
+schema** - a new task should carry the same ones. Never assume a value from
 memory or from the user's phrasing.
 
 Formula columns come back with the properties. When the base defines
@@ -64,7 +64,7 @@ predating those views has neither; Step 6's rules still apply.
 
 **The base includes done tasks.** Its filter no longer excludes them, so
 `base:query` is the full inventory rather than a list of open work. Two
-consequences: drop `status: done` rows before ranking anything (Step 6), and
+consequences: drop `done: true` rows before ranking anything (Step 6), and
 recognise them as `obsidian-task-grooming`'s sweep queue rather than work.
 
 ## Step 2 - Create a task
@@ -78,7 +78,7 @@ arrives empty because `base:create` takes no template:
 
 ```bash
 obsidian base:create path="<base path>" name="<task name>"
-obsidian property:set name=status value=backlog path="<new path>"
+obsidian property:set name=done value=false type=checkbox path="<new path>"
 obsidian property:set name=priority value=medium path="<new path>"
 obsidian property:set name=category value=yard path="<new path>"
 obsidian property:set name=created value="[[<today>]]" path="<new path>"
@@ -101,27 +101,29 @@ Read `references/schema.md` before creating or migrating: it holds the field
 contract and the values already in use, so a new task reuses a `category`
 instead of coining one.
 
-## Step 3 - Change status, and complete a one-time task
+## Step 3 - Complete a one-time task
 
-The canonical set is `backlog`, `active`, `done`:
+Completion is the `done` checkbox. There is no in-flight state; a task is done
+or it is not.
 
-```bash
-obsidian property:set name=status value=active path="<path>"
-```
-
-**Check `frequency` before writing `done`** - it separates the two kinds of
-task, and the branch is not recoverable by reading the note afterwards. A
-task *with* a rule goes to Step 4 and never gets `status: done`. A task
+**Check `frequency` before writing `done: true`** - it separates the two kinds
+of task, and the branch is not recoverable by reading the note afterwards. A
+task *with* a rule goes to Step 4 and never gets `done: true`. A task
 *without* one is finished for good here, and finishing it removes the note:
 
 ```bash
 obsidian property:set name="last done" value="<today>" path="<path>"
-obsidian property:set name=status value=done path="<path>"
+obsidian property:set name=done value=true type=checkbox path="<path>"
 obsidian delete path="<path>"        # prints: Moved to trash: <path>
 ```
 
+**`done` is the one property that needs `type=checkbox`** - without the flag
+the CLI writes the string `"false"` instead of a boolean, and every filter
+that tests it stops working. See Gotchas; the blanket ban on `type=` still
+holds for every other property.
+
 **Confirm with the user before the `delete`, naming the note.** It is the one
-command in this skill that removes work. Write `status: done` first even
+command in this skill that removes work. Write `done: true` first even
 though the note is about to go: the trashed copy is recoverable, and it
 should read as finished work rather than as an abandoned draft.
 
@@ -168,7 +170,7 @@ Then write three properties, in this order, and append to the body:
 ```bash
 obsidian property:set name="last done" value="<today>" path="<path>"
 obsidian property:set name=due value="<computed>" path="<path>"
-obsidian property:set name=status value=backlog path="<path>"
+obsidian property:set name=done value=false type=checkbox path="<path>"
 obsidian append path="<path>" content='\n- <today> - <detail>\n'
 ```
 
@@ -185,7 +187,7 @@ wrong without erroring.
 ## Step 5 - Sweeping the base belongs to grooming
 
 Finished one-time tasks stay in the base rather than vanishing, and clearing
-them out is `obsidian-task-grooming`'s Step 4: it surveys the whole base, lists
+them out is `obsidian-task-grooming`'s Step 3: it surveys the whole base, lists
 every candidate by name, and deletes on a single confirmation. Hand off to it
 rather than sweeping here.
 
@@ -201,25 +203,26 @@ a single note, not a pass over the base.
 
 ## Step 6 - Answer what to work on
 
-**Drop `status: done` rows before ranking.** They sit in the base now and they
-are not work; scheduling one is the new way to get this step wrong.
+**Drop `done: true` rows before ranking.** They sit in the base and they are
+not work; scheduling one is the way to get this step wrong. Test the value
+properly - `base:query` returns `done` as a string, so `if row['done']:` is
+true for an *open* task. See Gotchas.
 
-The base's Table view sorts by `due` ascending, then `status` descending. That
-front-loads the soonest work and pushes empty `due` to the end, but it is not
-a priority ranking. Any ranking is this skill's, so state the rule rather than
-implying the vault supplied it.
+The base's Table view sorts by `done` ascending, then `due` ascending. That
+front-loads open work and the soonest due dates, but it is not a priority
+ranking. Any ranking is this skill's, so state the rule rather than implying
+the vault supplied it.
 
 Default ranking, highest first:
 
 1. Overdue - `overdue` is true, or `due` is a date before today
-2. `status: active`
-3. `priority: high`, then `medium`, then `low`
-4. Ties broken by `due`, empty `due` last
+2. `priority: high`, then `medium`, then `low`
+3. Ties broken by `due`, empty `due` last
 
 Prefer the base's own `overdue` and `days_until_due`, and query
 `view="Today"` or `view="This week"` rather than filtering every row by hand.
-Both filter on `due` alone, not on `status` - a done task that still carries a
-due date comes back in them, so drop done rows after querying either.
+Both now carry a `done != true` clause, so done tasks no longer come back in
+them.
 
 Say how many tasks were considered, counting open ones only. A count that
 drops between runs means a task was completed and swept, not that something
@@ -270,12 +273,26 @@ from the vault trash. If a command printed `Error: `, say what did not happen.
   have; here `open` is an opt-in instead. Check `obsidian help <command>`
   before using a flag taken from any external source.
 - **`obsidian tasks` is a different system.** It lists checkbox tasks written
-  inline in note bodies (`done`, `todo`, `status="<char>"`). This skill never
-  uses it - a task here is a note with `type: task`, not a `- [ ]` line.
+  inline in note bodies, and its own flags happen to be named `done`, `todo`,
+  and `status="<char>"` - unrelated to this schema's `done` property despite
+  the collision. This skill never uses it: a task here is a note with
+  `type: task`, not a `- [ ]` line.
 - **The base holds done tasks too.** The filter no longer excludes
-  `status: done`, so `base:query` is the full inventory rather than a list of
+  `done: true`, so `base:query` is the full inventory rather than a list of
   open work. Drop done rows before ranking, and never schedule one as if it
   were outstanding. Clearing them out is grooming's sweep, not this skill's.
+- **`done` is the one property that must carry `type=checkbox`.** Without the
+  flag, `property:set name=done value=false` writes the *string* `"false"`,
+  and every filter testing it silently stops working. This is the sole
+  exception to the ban below; `done` is task-exclusive, so registering it
+  vault-wide is the intent rather than a side effect. Never generalise the
+  exception to any other property.
+- **`base:query` returns `done` as a string, and `"false"` is truthy.** An
+  open task reads back as `'false'`, a completed one as `'true'` - both
+  non-empty strings. `if row['done']:` is therefore true for *every* task, and
+  code built that way treats the whole base as finished. Test
+  `row['done'] in (True, 'true')`. Verified live: the naive test counted 29 of
+  29 tasks as done when exactly one was.
 - **`frequency` is empty on a one-time task, not missing.** The template
   writes the key with no value, so `frequency:` appears on every task note and
   a test for an absent line matches nothing - a branch built that way sends
