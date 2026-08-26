@@ -15,7 +15,9 @@ Usage: python3 scripts/validate.py
 from __future__ import annotations
 
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -441,6 +443,63 @@ def check_plugin(
         check_skill(skill_dir)
 
 
+def _git(*args: str) -> str | None:
+    """Run git, returning stdout, or None when git or the ref is unavailable."""
+    try:
+        done = subprocess.run(
+            ("git", "-C", str(REPO), *args),
+            capture_output=True, text=True, check=False,
+        )
+    except (OSError, ValueError):
+        return None
+    return done.stdout if done.returncode == 0 else None
+
+
+def check_version_bumped(plugin_dirs: list[Path]) -> None:
+    """A skill change without a version bump never reaches existing installs.
+
+    Claude Code caches the extracted plugin under its version number, so an
+    unchanged version means the stale payload is reused and the edit simply
+    does not load - with every other validator green. Compare each plugin's
+    skills against a base ref and require the version to have moved with them.
+
+    Skips silently when the base ref cannot be resolved: a shallow CI clone or
+    a fresh repository has nothing to compare against, and a validator that
+    fails there would be worse than one that cannot run.
+    """
+    base = os.environ.get("VALIDATE_BASE_REF", "origin/main")
+    if _git("rev-parse", "--verify", "--quiet", f"{base}^{{commit}}") is None:
+        return
+
+    for plugin_dir in plugin_dirs:
+        name = plugin_dir.name
+        changed = _git("diff", "--name-only", base, "--", f"plugins/{name}/skills")
+        if not changed or not changed.strip():
+            continue
+
+        manifest = plugin_dir / "plugin.json"
+        rel = manifest.relative_to(REPO).as_posix()
+        blob = _git("show", f"{base}:{rel}")
+        if blob is None:
+            continue  # new plugin: nothing to compare against
+        try:
+            base_version = json.loads(blob).get("version")
+        except json.JSONDecodeError:
+            continue
+
+        current = load_json(manifest)
+        if current is None or current.get("version") != base_version:
+            continue
+
+        count = len([line for line in changed.splitlines() if line.strip()])
+        error(
+            manifest,
+            f"{count} file(s) under plugins/{name}/skills changed since {base}, "
+            f"but version is still {base_version!r} - bump it in all three "
+            f"manifests or the change will not reach existing installs",
+        )
+
+
 def check_extra_entries(
     path: Path,
     entries: dict[str, dict[str, Any]],
@@ -462,6 +521,8 @@ def main() -> int:
         errors.append("plugins/: no plugins found")
     for plugin_dir in plugin_dirs:
         check_plugin(plugin_dir, claude_entries, codex_entries)
+
+    check_version_bumped(plugin_dirs)
 
     plugin_names = {path.name for path in plugin_dirs}
     check_extra_entries(claude_path, claude_entries, plugin_names)
