@@ -116,7 +116,14 @@ symlink as an error, since package paths must stay inside the plugin root.
 
 **Bump the plugin `version` in all three manifests.** This is not
 bookkeeping - see the first entry under Gotchas. Adding a skill is a minor
-bump (`1.0.0` to `1.1.0`); rewriting one in place is a patch bump.
+bump (`1.0.0` to `1.1.0`); rewriting one in place is a patch bump; changing a
+schema that existing notes or vaults already follow is a major bump.
+
+`scripts/validate.py` enforces this: it diffs each plugin's `skills/` against
+`VALIDATE_BASE_REF` (default `origin/main`) and errors when they changed but
+the version did not. It skips when the base ref will not resolve, so a shallow
+clone or a fresh repository does not fail - which is why CI checks out with
+`fetch-depth: 0`.
 
 The rest needs no manifest change to *validate*, but the manifests carry
 user-facing text that a new skill can make stale:
