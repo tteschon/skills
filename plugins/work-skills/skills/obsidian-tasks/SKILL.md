@@ -1,7 +1,7 @@
 ---
 name: obsidian-tasks
-description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task and collected by a Bases file, carrying a done checkbox, due, priority, category, and an RRULE frequency. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward after doing it, or ask what to work on next - what are my top tasks, what is overdue, what should I do this weekend, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, a task repo, a task note's done state or frequency, or a backlog of home, yard, or vehicle chores. Do not use it for checkbox tasks inline in note bodies - what the obsidian tasks command lists - do not use it to review the whole base or to sweep out finished tasks - groom my tasks, what is stale - which is obsidian-task-grooming; and do not use it for general vault reading, searching, or note editing - obsidian-vault covers those.
-compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task, collected by a Bases file
+description: Creates and manages task notes in an Obsidian vault - one note per task, identified by a type property set to task, collected by a Bases file, carrying a done checkbox, due, priority, category, an optional asset link, and an RRULE frequency, and edited alongside the Task Base plugin. Use this skill when the user wants to add a task, mark one done, change its priority or due date, roll a recurring chore forward, or ask what to work on next - what are my top tasks, what is overdue, add mowing the lawn to my tasks, I just changed the oil. Also use it when the user mentions their task base, the Task Base plugin or its task pane, a task note's done state, asset, or repeat rule, or a backlog of home or yard chores. Do not use it for checkbox tasks inline in note bodies; do not use it to review the whole base or sweep out finished tasks - groom my tasks, what is stale - which is obsidian-task-grooming; and not for general vault reading, searching, or note editing, which is obsidian-vault.
+compatibility: Requires the obsidian CLI and a vault whose task notes carry a type property of task; uses the task-base Obsidian plugin when installed, and falls back to a Python RRULE evaluator when it is not
 ---
 
 # Obsidian Tasks
@@ -15,6 +15,11 @@ lives.** The base collects them wherever they sit. Every write here changes
 the user's real notes - one of them deletes a note - and the CLI exits 0 on
 failure, so nothing is done until the read-back in Step 7.
 
+**This skill is not the only writer.** The `task-base` plugin edits the same
+notes from inside Obsidian, and where the two disagree the user gets two
+answers for one task. Delegate to it wherever it can be reached from the CLI -
+`references/plugin.md` says where that is.
+
 ## Before you start
 
 `obsidian-vault` covers the CLI itself - preflight, vault targeting, and why
@@ -22,15 +27,31 @@ exit codes cannot be trusted; do not re-derive it. Run its check, then
 **resolve the layout rather than assuming it**:
 
 ```bash
-command -v obsidian          # exit 1 - stop, not fixable from the shell
-command -v uv                # needed to evaluate RRULEs in Step 4
-obsidian vault info=name     # confirm the right vault
-obsidian bases               # find the task base
+command -v obsidian                       # exit 1 - stop, not fixable from the shell
+obsidian vault info=name                  # confirm the right vault
+obsidian plugins:enabled | grep -x task-base   # is the plugin there?
 ```
 
-Rolling a recurring task forward evaluates an RFC 5545 `RRULE` and so needs
-Python as well as the CLI - `uv run --with python-dateutil` supplies it per
-invocation, with no project dependency. Every other step is shell only.
+**When `task-base` is enabled, ask it for the layout instead of deducing
+one:**
+
+```bash
+obsidian eval code='JSON.stringify(app.plugins.plugins["task-base"].settings)'
+```
+
+That returns `basePath`, `taskFolder`, `excludedFolders`, `categories`,
+`defaultPriority` and `logHeading` - every value the rest of this skill would
+otherwise assume. Strip `eval`'s `=> ` prefix before parsing. Read
+`references/plugin.md` now: it is the contract between this skill and the
+plugin, and Steps 4 and 6 both hand work to it.
+
+Without the plugin, find the base and check for Python, which the fallback
+RRULE evaluator needs:
+
+```bash
+command -v uv                # only the Step 4 fallback needs it
+obsidian bases               # find the task base
+```
 
 | Found | Do |
 |---|---|
@@ -56,11 +77,18 @@ One object per task, keyed by the base view's columns. **The keys are the
 schema** - a new task should carry the same ones. Never assume a value from
 memory or from the user's phrasing.
 
-Formula columns come back with the properties. When the base defines
-`days_until_due` and `overdue`, **those values are the answer** - the vault
-computed them, so do not recompute from `due`. `base:views` lists what a base
-offers, and `base:query ... view="Today"` queries one directly. A base
-predating those views has neither; Step 6's rules still apply.
+**A formula is returned only if some view lists it.** The base defines
+`days_until_due` and `overdue`, but the plugin-generated `Table` view names
+neither, so a default query returns no formula columns at all. `This week`
+returns `days_until_due`; nothing returns `overdue`. Where a formula does come
+back it is the answer, computed by the vault - do not recompute it from `due`.
+`base:views path="<base path>"` lists what a base offers - it takes `path=`
+and `file=` even though `obsidian help base:views` shows no options at all -
+and `base:query ... view="Today"` queries one by name.
+
+With the plugin installed there is a better survey than the base:
+`repository.buckets()` partitions the open set into the same sections as the
+sidebar the user is looking at. `references/plugin.md` has the call.
 
 **The base includes done tasks.** Its filter no longer excludes them, so
 `base:query` is the full inventory rather than a list of open work. Two
@@ -81,11 +109,15 @@ obsidian base:create path="<base path>" name="<task name>"
 obsidian property:set name=done value=false type=checkbox path="<new path>"
 obsidian property:set name=priority value=medium path="<new path>"
 obsidian property:set name=category value=yard path="<new path>"
-obsidian property:set name=created value="[[<today>]]" path="<new path>"
+obsidian property:set name=created value="<today>" path="<new path>"
+obsidian property:set name=asset value="[[Cub Cadet Ultima 54 Mower]]" path="<new path>"
 ```
 
-`created` is the daily-note backlink - a quoted wikilink, never a bare date.
-The user's template sets it; `base:create` does not.
+`created` is a **bare `YYYY-MM-DD`**, registered vault-wide as a date. It used
+to be a wikilink to the daily note; writing one now is a regression that turns
+the property back into text. `asset` is optional - a quoted wikilink to the
+note for the thing being serviced, which carries `type: asset`. Set it only
+when there is one, and leave the key off otherwise.
 
 **Never pass `type=` to `property:set`** - see Gotchas. It is doubly
 confusing here, because `type` is also the property that marks a task:
@@ -96,6 +128,13 @@ Ask for `category` and `priority` when the user did not say; leave `due` and
 to `create name="<name>" path="<folder>"` then
 `property:set name=type value=task` - the note is only a task once it has
 that property.
+
+With the plugin installed, take `categories` and `defaultPriority` from its
+settings rather than from this skill's tables, and put the note in its
+`taskFolder`. Its **Create task** command is a form the user fills in, so it
+is not something to fire from the CLI - offer it when they are at the keyboard
+and would rather type into a dialog. Same for **Set asset**, whose type-ahead
+over `type: asset` notes beats guessing a wikilink.
 
 Read `references/schema.md` before creating or migrating: it holds the field
 contract and the values already in use, so a new task reuses a `category`
@@ -133,6 +172,13 @@ note that outlives the task, so offer to move it before deleting rather than
 after. The ones already sitting in the base are swept by
 `obsidian-task-grooming`, not here.
 
+**The plugin does not do this.** Its **Complete task** command writes
+`done: true` and stops - it never deletes. So a task finished in the app stays
+in the base and a task finished here does not. That difference is deliberate:
+deletion needs a confirmation, and a modal button is not one. Say which
+happened when reporting, and if the user expects the plugin's behaviour,
+completing without the delete is a fine thing to do on request.
+
 ## Step 4 - Complete a recurring task
 
 A recurring task is never left `done`; that is what makes it recur. Marking
@@ -142,47 +188,55 @@ no longer hides: done tasks stay in the base, so a done row carrying a
 those rows for roll-forward and never deletes them - **`frequency` is what
 keeps a task out of the sweep**, which is one more reason never to clear it.
 
-`frequency` holds an RFC 5545 `RRULE`. The new `due` is the next occurrence
-**strictly after today**, anchored on the task's current `due`:
+`frequency` holds an RFC 5545 `RRULE`. The policy is **skip the rest of the
+period you just did it in**, then take the schedule's next occurrence - so the
+anchor is the completion date, *not* the task's current `due`. Mow the lawn on
+a Wednesday under `FREQ=WEEKLY;BYDAY=SU` and the answer is the Sunday after
+next, because this week's slot is already spent.
 
-```bash
-uv run --with python-dateutil python3 -c '
-import sys, datetime as d
-from dateutil.rrule import rrulestr
-r = rrulestr(sys.argv[1], dtstart=d.datetime.fromisoformat(sys.argv[2]))
-print(r.after(d.datetime.fromisoformat(sys.argv[3])).date().isoformat())
-' "<frequency>" "<current due>" "<today>"
-```
-
-**Never compute this by hand.** RRULE's `BY*` parts expand or limit depending
-on the `FREQ` above them, and the intuitive spelling of "annually on the last
-day of the month" - `FREQ=YEARLY;BYMONTHDAY=-1` - silently yields a *monthly*
-series. `references/recurrence.md` has the value grammar, the traps, and the
-verified cases.
-
-Anchoring on `due` is what makes a late completion land on the next scheduled
-slot instead of shifting every future cycle. Confirm afterwards that the new
-`due` is itself on the rule's grid - an off-grid anchor rolls forward by days
-instead of months.
-
-Then write three properties, in this order, and append to the body:
+**With the plugin installed, let it compute.** Its `recompute-due` command
+anchors on `last done`, so writing that first gets exactly what the user's own
+**Complete task** button would have produced:
 
 ```bash
 obsidian property:set name="last done" value="<today>" path="<path>"
-obsidian property:set name=due value="<computed>" path="<path>"
+obsidian open path="<path>"                    # must print: Opened: <path>
+obsidian command id=task-base:recompute-due    # prints: Executed: ...
+obsidian read path="<path>"                    # the new due, read back
 obsidian property:set name=done value=false type=checkbox path="<path>"
 obsidian append path="<path>" content='\n- <today> - <detail>\n'
 ```
 
+Two things this sequence depends on. **`obsidian open` must land on the task**
+- every plugin command falls back to a picker modal when the active file is
+not a task, and `obsidian command` prints `Executed:` either way, so a dialog
+left open in front of the user reads here as success. And **read the new `due`
+with `obsidian read`, never `property:read`** - the property cache lags a
+plugin write by a moment and will hand back the old value.
+
+Without the plugin, compute it with the evaluator in
+`references/recurrence.md`, then write `due` yourself with `property:set`
+between the `last done` and `done` writes above. **Never compute it by hand:**
+RRULE's `BY*` parts expand or limit depending on the `FREQ` above them, and the
+intuitive spelling of "annually on the last day of the month" -
+`FREQ=YEARLY;BYMONTHDAY=-1` - silently yields a *monthly* series.
+
 `last done` and `due` are real dates, always. Non-date detail - mileage, a
-part number, what was done - goes on the body log line under a
-`## Service log` heading, **never** into those two fields. The body log also
-keeps the history that `last done` overwrites.
+part number, what was done - goes on the body log line under a `## Service log`
+heading, **never** into those two fields. The heading is the plugin's
+`logHeading` setting where the plugin exists; read it rather than hardcoding
+the default. The body log also keeps the history that `last done` overwrites.
 
 Read `references/recurrence.md` before writing or editing any rule. It holds
-the `RRULE` value grammar, the evaluator invocation, the grid-alignment
-assertion, and the expand-versus-limit traps that make hand-computed dates
-wrong without erroring.
+the `RRULE` value grammar, the three-case policy with its verified table, the
+fallback evaluator, and the expand-versus-limit traps that make hand-computed
+dates wrong without erroring.
+
+An **unreadable** `frequency` is a third state, not a one-time task. The
+plugin refuses to complete one; so should this skill, since finishing it as
+one-time would write `done: true` and then delete a schedule the user meant to
+keep. Ask for the rule to be fixed - the plugin's **Edit repeat rule** builder
+previews the next three dates, which is the fastest way to fix one.
 
 ## Step 5 - Sweeping the base belongs to grooming
 
@@ -208,21 +262,28 @@ not work; scheduling one is the way to get this step wrong. Test the value
 properly - `base:query` returns `done` as a string, so `if row['done']:` is
 true for an *open* task. See Gotchas.
 
-The base's Table view sorts by `done` ascending, then `due` ascending. That
-front-loads open work and the soonest due dates, but it is not a priority
-ranking. Any ranking is this skill's, so state the rule rather than implying
-the vault supplied it.
+**With the plugin, read its buckets and keep its order** - that is what makes
+the answer match the sidebar the user is looking at. Its sections partition the
+open set, so nothing can be due-dated into invisibility, and `later` is defined
+as the remainder rather than as a date window.
 
-Default ranking, highest first:
+Its ranking within a section is **`due` ascending, empty `due` last, then
+priority high/medium/low, then name.** Due before priority. Follow the same
+order when working without the plugin, so the two never disagree:
 
-1. Overdue - `overdue` is true, or `due` is a date before today
-2. `priority: high`, then `medium`, then `low`
-3. Ties broken by `due`, empty `due` last
+1. Overdue first - `due` is a date before today
+2. Then by `due` ascending, empty `due` last
+3. Ties broken by `priority`, high before medium before low, then by name
 
-Prefer the base's own `overdue` and `days_until_due`, and query
-`view="Today"` or `view="This week"` rather than filtering every row by hand.
-Both now carry a `done != true` clause, so done tasks no longer come back in
-them.
+Any ranking is still this skill's to state out loud; the vault supplies no
+sort order. The base's Table view sorts by `done` then `due`, which
+front-loads open work but is not a priority ranking.
+
+Without the plugin, query `view="Today"` or `view="This week"` rather than
+filtering every row by hand. Both carry a `done != true` clause, so done tasks
+do not come back in them. Do not reach for the `overdue` formula: it is
+defined in the base but listed by no view, so no query returns it - compare
+`due` to today instead.
 
 Say how many tasks were considered, counting open ones only. A count that
 drops between runs means a task was completed and swept, not that something
@@ -236,7 +297,10 @@ The CLI exits 0 on failure, so check the output text and then the data:
 1. Each write prints `Created: <path>`, `Set <property>: <value>`, or
    `Moved to trash: <path>`. A line starting with `Error: ` is a failure -
    including `Error: File "..." not found.`, which is what a delete against a
-   mistyped path prints in place of doing anything.
+   mistyped path prints in place of doing anything. **`Executed: <id>` from
+   `obsidian command` is not a success line** - it says the command was
+   dispatched, not that it wrote anything, so a plugin command is verified by
+   the note and by nothing else.
 2. Re-run the Step 1 `base:query`. Done tasks stay in the base now, so absence
    has one innocent cause and one failure:
 
@@ -248,6 +312,12 @@ The CLI exits 0 on failure, so check the output text and then the data:
    The second is invisible from the note alone, which is why the read-back
    goes against the base and not the file. A completed one-time task that is
    still *present* means the delete did not happen - check its output line.
+
+When the plugin did a write, read the note back with `obsidian read` rather
+than `property:read`, and check nothing was left waiting for the user -
+`obsidian eval code='document.querySelectorAll(".modal-container").length'`
+returning anything but `0` means a dialog is open in front of them, which is
+worth saying rather than reporting the step as finished.
 
 Never report a change as made on the strength of a silent command. Then give
 the note path, the fields changed, and their new values, quoting the
@@ -318,9 +388,29 @@ from the vault trash. If a command printed `Error: `, say what did not happen.
   **`false`** - so the task is never flagged overdue and date-window views
   omit it with no error at all. Both fields are real dates on every task
   today; keep them that way.
-- **`created` is a wikilink, not a date** - `"[[2026-08-16]]"`, pointing at
-  the daily note. Writing a bare date breaks that backlink. The template
-  handles it; do not set `created` by hand.
+- **`created` is a bare date, not a wikilink** - `2026-08-16`, registered
+  vault-wide as `date`. It used to be `"[[2026-08-16]]"`, a backlink to the
+  daily note, which made the property *text* and left it unsortable. Writing a
+  wikilink now undoes that. One note in the vault still carries the old form,
+  written by an earlier version of this skill; normalising it is a safe repair
+  to offer.
+- **Modal plugin commands cannot be driven from the CLI, and say nothing when
+  they are.** `obsidian command` prints `Executed: <id>` whether the command
+  did the work or opened a form and walked away. `task-base:recompute-due` is
+  the only one that finishes on its own, and only when the active file is
+  already a task. `references/plugin.md` has the guard rails.
+- **`property:read` can return a stale value straight after a plugin write.**
+  Verified live: it handed back the pre-write `2026-06-30` while
+  `obsidian read` on the same path already showed `2026-12-31`. Read back
+  through `obsidian read` whenever a plugin command did the writing.
+- **`obsidian eval` prefixes its result with `=> `**, and prints nothing at
+  all when the expression is `undefined` - which is indistinguishable from a
+  plugin that is not loaded. Check `plugins:enabled` rather than inferring it
+  from empty output.
+- **A formula the base defines is returned only if a view lists it.** The
+  plugin-generated `Table` view names no formula columns, so `days_until_due`
+  and `overdue` reach no default query despite being in the file. `This week`
+  returns `days_until_due`; nothing returns `overdue`.
 - **Never read or write task state from a Kanban board or a hand-maintained
   table.** They look authoritative and drift from the frontmatter;
   `references/schema.md` measures the drift and explains why the board is

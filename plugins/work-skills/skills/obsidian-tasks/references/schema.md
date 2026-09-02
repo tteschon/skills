@@ -7,24 +7,49 @@ from how they are declared.
 
 ## The fields
 
-One note per task, with this frontmatter. The shape comes from the user's
-template, which is the only thing that should ever write `created`.
+One note per task, with this frontmatter. Two things write it: the user's
+template, and the `task-base` plugin - which renders the same keys in the same
+order, so a note is indistinguishable whichever made it.
 
 | Field | Declared type | Reality |
 |---|---|---|
 | `type` | text | **The identity field.** `task` is what puts a note in the base |
 | `done` | **checkbox** | `true` once finished - on a one-time task that means the note is about to be deleted. Binary: there is no in-flight state |
 | `due` | **date** | A real date on every task. Keep it that way - see below |
-| `created` | unregistered | A wikilink, `"[[YYYY-MM-DD]]"`, not a date |
+| `created` | **date** | A bare `YYYY-MM-DD`. It used to be a wikilink; it is not any more - see below |
 | `priority` | text | `low`, `medium`, `high` |
 | `category` | unregistered | Free text, but reuse an existing value |
 | `last done` | **date** | Latest completion only; the body log holds the history |
 | `frequency` | text | An RFC 5545 `RRULE` value. **Set = recurring, empty = one-time.** Evaluated in Step 4, and what keeps a task out of the grooming sweep |
-| `asset` | unregistered | Optional wikilink to the thing serviced, e.g. `"[[Cub Cadet Ultima 54 Mower]]"` |
+| `asset` | unregistered | Optional quoted wikilink to the thing serviced, e.g. `"[[Cub Cadet Ultima 54 Mower]]"`. Omitted entirely when unset, not written empty |
 
 "Declared type" is what `.obsidian/types.json` registers. Unregistered
-fields infer as text and are safe to write. The two registered as `date` are
+fields infer as text and are safe to write. The three registered as `date` are
 the ones worth protecting - see "Dates are dates" below.
+
+### `created` is a bare date, vault-wide
+
+`created` once held a wikilink to the daily note - `"[[2026-08-31]]"` - which
+made it **text**, so it could not be sorted, compared, or used in a formula.
+It is now a bare `YYYY-MM-DD`, registered as `date`.
+
+Writing a wikilink into it now is a regression, not a backlink. One note in
+the live vault still holds `created: "[[2026-09-02]]"`, written by an older
+version of this skill; normalising it to `2026-09-02` is a safe repair to
+offer when it comes up.
+
+The registry is vault-wide, not per-note-type, which is what made the change
+expensive: `created` sat on 259 notes in three incompatible formats and all of
+them had to be normalised together. Do not reopen that decision casually.
+
+### `asset` points at a note carrying `type: asset`
+
+The same identity rule as tasks, one namespace over. The plugin's picker
+offers every `type: asset` note and accepts a name with no matching note -
+capturing a chore for something not yet inventoried is normal - so a dangling
+link here is a gap, not a bug. A vault may *also* collect the same notes by
+folder in an `Inventory` base; matching on the property is what keeps the two
+agreeing when a note moves.
 
 ### `type` decides membership, not the folder
 
@@ -59,7 +84,7 @@ no `recurring` flag; a task recurs if and only if it carries a rule.
 |---|---|---|
 | `frequency` | empty | an `RRULE` value |
 | On completion | `done: true`, `last done` = today | `last done` = today, `due` recomputed, `done` back to `false` |
-| Afterwards | Note deleted to the vault trash | Stays, with a new due date |
+| Afterwards | Note deleted to the vault trash by this skill; **kept by the plugin** | Stays, with a new due date |
 
 `frequency` is **empty, not absent**, on a one-time task - the template writes
 the key on every note. Nothing distinguishes the two kinds in the file text,
@@ -81,7 +106,8 @@ passes it over instead of removing it.
 
 ## Dates are dates
 
-`due` and `last done` are registered `date` and hold real dates on every task.
+`due`, `last done` and `created` are registered `date` and hold real dates on
+every task.
 This was not always true: vehicle tasks once stored `~25,731 mi` and
 `2026-06-19 (22,731 mi)` in them, which broke sorting, comparison, and every
 formula that touched them - and broke them *quietly*, since `due < now()` on a
@@ -111,7 +137,7 @@ every value in one call.
 |---|---|
 | `done` | `false` on every open task; `true` only briefly, on a finished one-time task awaiting deletion |
 | `priority` | `low` and `medium` only - **no task carries `high`**, so priority ranks almost nothing as used |
-| `category` | `yard`, `home`, `errands`, `vehicle`, `health` |
+| `category` | `yard`, `home`, `errands`, `vehicle`, `health` - also the plugin's `categories` setting, which is the live list |
 | `frequency` | `FREQ=WEEKLY;BYDAY=MO`, `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1`, `FREQ=YEARLY` - empty on one-time tasks |
 | `asset` | wikilinks to equipment notes; absent on most tasks |
 

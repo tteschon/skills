@@ -6,9 +6,26 @@ touches this file - `SKILL.md` covers that.
 
 Everything here is verified working against Obsidian 1.13.x.
 
+## The plugin builds one too - and it differs
+
+When `task-base` is installed, `task-base:open-base` creates the base at
+`<taskFolder>/task base.base` with its exclusion clauses generated from the
+plugin's `excludedFolders` setting. That is what the live vault holds, and it
+is one view short of the file below: **the plugin generates no `Sweep` view.**
+`obsidian-task-grooming` must then derive its sweep queue from a query over
+the full base. Adding the view back is an edit to the `.base` file; the plugin
+will not re-add it, and will not remove it either.
+
+Two smaller differences in the generated file: its `Table` view lists `created`
+and `asset` as columns, and it lists **no formula columns at all** - so
+`days_until_due` and `overdue` are defined and returned by nothing. `This week`
+is the only view that returns `days_until_due`. Add `formula.overdue` to a
+view's `order:` if a query needs it.
+
 ## The bootstrap base
 
-Create it at `tasks/task base.base`, after confirming with the user:
+Create it at `tasks/task base.base`, after confirming with the user. This is
+the fuller version - the plugin's generated file, plus `Sweep`:
 
 ```yaml
 filters:
@@ -21,7 +38,7 @@ formulas:
 views:
   - type: table
     name: Table
-    order: [file.name, category, frequency, due, last done, priority, done]
+    order: [file.name, done, category, frequency, created, due, last done, priority, asset]
     sort:
       - {property: done, direction: ASC}
       - {property: due, direction: ASC}
