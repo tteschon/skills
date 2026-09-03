@@ -71,7 +71,7 @@ earlier version filtered `status != "done"`, which dropped a completed
 one-time task out of the base
 the moment it was finished - tidy to look at, but it also put the note beyond
 the reach of `base:query`, so nothing could ever find it again to clean it up.
-Keeping done tasks in the base is what makes the `obsidian-task-grooming`
+Keeping done tasks in the base is what makes the grooming
 sweep possible.
 
 The formulas do the date arithmetic once, in the vault, so every run reads
@@ -102,7 +102,7 @@ task work are in `SKILL.md`.
   original and reports success - and a query against the original path then
   returns the old content, which reads as an edit that did not take. The
   `Created:` line names the path it actually wrote; `Overwrote:` is what a
-  successful replace prints. `obsidian-vault` covers `overwrite` and the rule
+  successful replace prints. `obsidian-cli` covers `overwrite` and the rule
   to confirm before using it, since it replaces the whole file.
 - **A file written to the vault from the shell is not visible to the CLI
   immediately.** `obsidian read` serves the app's cached copy and can return

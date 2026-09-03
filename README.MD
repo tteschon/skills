@@ -24,9 +24,8 @@ plugins/
 │   ├── .codex-plugin/plugin.json
 │   ├── .claude-plugin/plugin.json
 │   └── skills/
-│       ├── obsidian-task-grooming/
-│       ├── obsidian-tasks/
-│       └── obsidian-vault/
+│       ├── obsidian-cli/
+│       └── obsidian-tasks/
 └── work-skills/           # Productivity and work-focused agent skills
     ├── plugin.json
     ├── .codex-plugin/plugin.json

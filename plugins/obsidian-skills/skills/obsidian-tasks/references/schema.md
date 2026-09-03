@@ -19,7 +19,7 @@ template, which is the only thing that should ever write `created`.
 | `priority` | text | `low`, `medium`, `high` |
 | `category` | unregistered | Free text, but reuse an existing value |
 | `last done` | **date** | Latest completion only; the body log holds the history |
-| `frequency` | text | An RFC 5545 `RRULE` value. **Set = recurring, empty = one-time.** Evaluated in Step 4, and what keeps a task out of the grooming sweep |
+| `frequency` | text | An RFC 5545 `RRULE` value. **Set = recurring, empty = one-time.** Evaluated when completing a recurring task, and what keeps a task out of the sweep |
 | `asset` | unregistered | Optional wikilink to the thing serviced, e.g. `"[[Cub Cadet Ultima 54 Mower]]"` |
 
 "Declared type" is what `.obsidian/types.json` registers. Unregistered
@@ -110,7 +110,7 @@ every value in one call.
 | Field | Observed values |
 |---|---|
 | `done` | `false` on every open task; `true` only briefly, on a finished one-time task awaiting deletion |
-| `priority` | All three are in use, but the distribution is lopsided - mostly `low`, then `medium`, with `high` rare. Treat a `high` as deliberate: it is the one value that reorders Step 6 |
+| `priority` | All three are in use, but the distribution is lopsided - mostly `low`, then `medium`, with `high` rare. Treat a `high` as deliberate: it is the one value that reorders "What to work on" |
 | `category` | `yard`, `home`, `errands`, `vehicle`, `health` |
 | `frequency` | `FREQ=WEEKLY;BYDAY=MO`, `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1`, `FREQ=YEARLY` - empty on one-time tasks |
 | `asset` | wikilinks to equipment notes; absent on most tasks |
@@ -158,4 +158,4 @@ of truth, that the legacy views are stale by a known amount, and offer to
 report the drift instead. Reconciling them - and deciding which of the 26
 orphan cards are real tasks - is a deliberate one-time job the user should
 decide on, not a side effect of completing a task and not something
-`obsidian-task-grooming` does on a schedule.
+grooming does on a schedule.
