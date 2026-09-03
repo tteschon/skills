@@ -1,32 +1,79 @@
-# Writing repeat rules
+# Computing the next due date
 
-Read this before writing or editing a `frequency` value. Computing a date from
-one is not covered here, because this skill does not compute them - the plugin
-does, and `nextDue` will answer without writing anything.
+Read this before computing a `due` date for a recurring task.
 
-Recurrence lives in one property holding an **RFC 5545 `RRULE` value**:
+Recurrence is stored in one property, `frequency`, holding an **RFC 5545
+`RRULE` value**:
 
 ```yaml
 frequency: FREQ=WEEKLY;INTERVAL=2;BYDAY=MO
 ```
 
-`INTERVAL`, `BYDAY`, `BYMONTHDAY`, `UNTIL` and `COUNT` all live inside that
-string. There are no companion fields, and an empty value means one-time.
+`INTERVAL`, `BYDAY`, `BYMONTHDAY`, `UNTIL`, and `COUNT` all live inside that
+string. There are no companion fields.
 
-## Check a rule before storing it
+## Never compute this by hand
+
+**Do not parse or evaluate an RRULE in shell, and do not reimplement the date
+arithmetic.** RFC 5545's `BY*` parts each either *expand* or *limit* the set
+depending on the `FREQ` they sit under, and getting that backwards produces a
+rule that looks right and yields the wrong dates. See the trap below.
+
+Call a real evaluator:
 
 ```bash
-tb 'ruleState("FREQ=WEEKLY;BYDAY=SU")'                  # none | valid | invalid
-tb 'describeRule("FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1")'
-tb 'upcoming("FREQ=MONTHLY;BYMONTHDAY=-1","2026-09-03",3)'
+uv run --with python-dateutil python3 -c '
+import sys, datetime as d
+from dateutil.rrule import rrulestr
+rule, due, today = sys.argv[1], sys.argv[2], sys.argv[3]
+r = rrulestr(rule, dtstart=d.datetime.fromisoformat(due))
+print(r.after(d.datetime.fromisoformat(today)).date().isoformat())
+' "<frequency>" "<due>" "<today>"
 ```
 
-All three are pure. `describeRule` and `upcoming` together are the honest way
-to confirm intent with the user: the rule in English, and the next three dates
-it actually produces. **Do both before writing an unfamiliar rule** - every
-trap below is one where the rule looks right and yields the wrong dates.
+This is why `SKILL.md` preflight requires Python in addition to the obsidian
+CLI. `dateutil` is not a project dependency; `uv run --with` supplies it per
+invocation.
 
-## The grammar
+## The two rules that define the model
+
+**1. The anchor is `due`.** RRULE has no meaning without a `DTSTART`; this
+system uses the task's current `due` date as that anchor.
+
+**2. Roll-forward is the next occurrence strictly after today.**
+`rule.after(today)` — today being the completion date.
+
+Rule 2 is what makes the model tolerant of late completions *without* a second
+field. The grid is fixed by the anchor, so a late completion lands on the next
+scheduled slot rather than shifting the whole series. Verified against
+`FREQ=WEEKLY;INTERVAL=2;BYDAY=MO` anchored 2026-08-24:
+
+| Completed | New `due` | |
+|---|---|---|
+| 2026-08-24 | 2026-09-07 | on time |
+| 2026-09-02 | 2026-09-07 | 9 days late; parity held, series not shifted |
+| 2026-09-08 | 2026-09-21 | a whole cycle missed - it skips rather than sliding |
+
+## The anchor must sit on its own grid
+
+`due` has to be a member of the series its own `frequency` generates. If it is
+not, the first roll-forward returns a short cycle - the next grid point, which
+may be days away instead of months.
+
+Assert it after every write:
+
+```python
+rrulestr(frequency, dtstart=due)[0].date() == due     # must be True
+```
+
+Real examples from the migration, before they were corrected: an oil change
+with `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1` anchored at 2026-12-19 rolled
+forward to 2026-12-31 - twelve days, not six months. A `FREQ=WEEKLY;BYDAY=SU`
+task anchored on a Friday rolled forward two days.
+
+When a task's `due` is off-grid, snap it to `rule[0]` before anything else.
+
+## Writing a rule
 
 | Intent | `frequency` |
 |---|---|
@@ -42,72 +89,24 @@ trap below is one where the rule looks right and yields the wrong dates.
 `BYDAY` takes a position prefix: `1SA` is the first Saturday, `-1FR` the last
 Friday. `BYMONTHDAY=-1` is the last day of the month.
 
-The plugin writes the terse form - `FREQ=YEARLY`, never
-`FREQ=YEARLY;INTERVAL=1` - and omits `INTERVAL` at 1. `buildRule` produces
-exactly that from `{freq, interval, byday, lastDayOfMonth}`, so a rule written
-here and one written by the builder read the same.
-
-## Three traps
-
-### `FREQ=YEARLY;BYMONTHDAY=-1` is a monthly rule
+### The `FREQ=YEARLY;BYMONTHDAY=-1` trap
 
 The obvious spelling of "annually, on the last day of the month" is wrong.
-Under `FREQ=YEARLY`, `BYMONTHDAY` **expands** rather than limits, so it yields
-the last day of *every* month:
+Under `FREQ=YEARLY`, `BYMONTHDAY` **expands**, so that rule yields the last day
+of *every* month - a monthly rule wearing a yearly label:
 
 ```
 FREQ=YEARLY;BYMONTHDAY=-1   ->  2026-11-30, 2026-12-31, 2027-01-31, 2027-02-28 ...
 FREQ=YEARLY                 ->  2026-11-30, 2027-11-30, 2028-11-30 ...
 ```
 
-Plain `FREQ=YEARLY` recurs on the anniversary, which is what "annual" means
-here. Nothing reports an error either way, which is what `upcoming` is for.
+Plain `FREQ=YEARLY` recurs on the anchor's anniversary, which is what "annual"
+means here. This is the concrete reason for the no-hand-parsing rule above:
+the wrong spelling is the intuitive one, and nothing reports an error.
 
-### An unreadable rule is a third state, not a one-time task
+## An empty `frequency` is one-time
 
-`ruleState` returns `invalid` for a value that will not parse, and `complete`
-refuses rather than choosing. Completing such a task as one-time would write
-`done: true` and retire a schedule meant to keep running.
-
-`FREQ=FORTNIGHTLY` is the shape this takes in practice: it parses as a rule
-with an unrecognised `FREQ` rather than raising, so a naive check reads it as
-recurring and it produces no date, forever. Those tasks surface in
-`buckets().invalidRule`.
-
-### An empty rule is empty, not absent
-
-The template writes a bare `frequency:` key on every task note, so a test for a
-missing line matches nothing. The API returns `null` for both, which is the
-reliable place to test it - and `null` is what clears it. Writing `""` instead
-leaves a value that is not null to Bases, and a `frequency != null` filter
-starts matching one-time tasks with no error to explain the wrong rows.
-
-## The policy, for explaining it
-
-The skill never applies this by hand - `nextDue` does - but the user may ask
-why a date moved where it did. `contract().recurrencePolicy` states it in the
-vault's own words; in short:
-
-**Skip the rest of the period you just did it in, then take the schedule's next
-occurrence.** The anchor is the completion date, never the task's current
-`due`. Mow the lawn on a Wednesday under `FREQ=WEEKLY;BYDAY=SU` and the answer
-is the Sunday after next, because this week's slot is already spent.
-
-| `frequency` | Completed | New `due` |
-|---|---|---|
-| `FREQ=WEEKLY;BYDAY=MO` | Mon 2026-08-24 | 2026-08-31 |
-| `FREQ=WEEKLY;BYDAY=SU` | Wed 2026-09-02 | 2026-09-13 |
-| `FREQ=WEEKLY;BYDAY=MO,TH` | Mon 2026-08-24 | 2026-08-27 |
-| `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1` | 2026-06-19 | 2026-12-31 |
-| `FREQ=YEARLY` | 2026-06-19 | 2027-06-19 |
-
-Two consequences worth stating to a user:
-
-- **A `due` that has drifted off its own rule corrects itself** on the next
-  completion, because nothing reads the old `due` to compute the new one.
-- **A recurring task with no `due` is not broken** - it has never been
-  completed. It sits in `buckets().needsAttention` until it is. Never backfill
-  `last done` to make arithmetic work.
-
-The table above is a copy of the plugin's own test cases. If it ever disagrees
-with `nextDue`, the plugin is right and this file is stale.
+A task recurs if and only if `frequency` has a value. Empty means one-time,
+which also means sweepable - see `schema.md`. A recurring task with an empty
+`due` is not a problem; it simply has no due date until first completed. Never
+backfill `last done` to make arithmetic work.
