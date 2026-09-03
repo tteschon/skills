@@ -110,13 +110,13 @@ every value in one call.
 | Field | Observed values |
 |---|---|
 | `done` | `false` on every open task; `true` only briefly, on a finished one-time task awaiting deletion |
-| `priority` | `low` and `medium` only - **no task carries `high`**, so priority ranks almost nothing as used |
+| `priority` | All three are in use, but the distribution is lopsided - mostly `low`, then `medium`, with `high` rare. Treat a `high` as deliberate: it is the one value that reorders Step 6 |
 | `category` | `yard`, `home`, `errands`, `vehicle`, `health` |
 | `frequency` | `FREQ=WEEKLY;BYDAY=MO`, `FREQ=MONTHLY;INTERVAL=6;BYMONTHDAY=-1`, `FREQ=YEARLY` - empty on one-time tasks |
 | `asset` | wikilinks to equipment notes; absent on most tasks |
 
-Some notes carry no `category` at all. That is a gap to ask about, not a
-value to invent.
+Every task currently carries a `category`. A note that turns up without one
+is a gap to ask about, not a value to invent.
 
 ## The three parallel systems
 
