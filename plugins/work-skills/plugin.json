@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "work-skills",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "Productivity and work-focused agent skills",
   "author": {
     "name": "Tyler Teschon",

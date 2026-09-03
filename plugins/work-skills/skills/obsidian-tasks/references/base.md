@@ -1,31 +1,34 @@
-# Authoring the task base
+# Repairing the task base
 
-Read this when there is no task base and one must be created, or when the
-base's filters, formulas, or views need changing. Day-to-day task work never
-touches this file - `SKILL.md` covers that.
+Read this when the base disagrees with the plugin, or when a filter, formula or
+view needs changing. Creating one is not covered, because the plugin's **Open
+base file** command does it - generating the filters from its own settings, so
+a base made that way agrees with the pane by construction.
 
-Everything here is verified working against Obsidian 1.13.x.
+Day-to-day task work never touches this file. Nothing in `SKILL.md` reads the
+base at all: `tasks()` and `buckets()` go through the plugin, which walks the
+metadata cache. The base is what the *user* looks at.
 
-## The plugin builds one too - and it differs
+Verified against Obsidian 1.13.x.
 
-When `task-base` is installed, `task-base:open-base` creates the base at
-`<taskFolder>/task base.base` with its exclusion clauses generated from the
-plugin's `excludedFolders` setting. That is what the live vault holds, and it
-is one view short of the file below: **the plugin generates no `Sweep` view.**
-`obsidian-task-grooming` must then derive its sweep queue from a query over
-the full base. Adding the view back is an edit to the `.base` file; the plugin
-will not re-add it, and will not remove it either.
+## The base and the plugin can drift
 
-Two smaller differences in the generated file: its `Table` view lists `created`
-and `asset` as columns, and it lists **no formula columns at all** - so
-`days_until_due` and `overdue` are defined and returned by nothing. `This week`
-is the only view that returns `days_until_due`. Add `formula.overdue` to a
-view's `order:` if a query needs it.
+Bases exposes no plugin API, so the plugin does not query the `.base` file - it
+re-implements the filter clauses against the metadata cache. The two agree only
+as long as someone keeps them agreeing.
 
-## The bootstrap base
+That makes the check one line:
 
-Create it at `tasks/task base.base`, after confirming with the user. This is
-the fuller version - the plugin's generated file, plus `Sweep`:
+```bash
+tb 'contract()'                              # the baseFilters the plugin uses
+obsidian read path="<basePath from contract>"
+```
+
+Every clause in `contract().baseFilters` must appear in the file's `filters:`
+block. A base missing `!file.inFolder("Templates")` will list the task template
+as a task; a base with an extra clause hides rows the pane still counts.
+
+## What the generated base contains
 
 ```yaml
 filters:
@@ -38,120 +41,92 @@ formulas:
 views:
   - type: table
     name: Table
-    order: [file.name, done, category, frequency, created, due, last done, priority, asset]
+    order: [file.name, done, category, frequency, created, due, last done,
+            priority, asset, formula.days_until_due, formula.overdue]
     sort:
       - {property: done, direction: ASC}
       - {property: due, direction: ASC}
   - type: table
     name: Today
-    filters:
-      and:
-        - 'done != true'
-        - 'due != null'
-        - 'due <= today()'
+    filters: {and: ['done != true', 'due != null', 'due <= today()']}
     order: [file.name, category, due, priority]
   - type: table
     name: This week
-    filters:
-      and:
-        - 'done != true'
-        - 'due != null'
-        - 'due <= today() + "7d"'
+    filters: {and: ['done != true', 'due != null', 'due <= today() + "7d"']}
     order: [file.name, category, due, formula.days_until_due, priority]
   - type: table
     name: Needs attention
-    filters:
-      and:
-        - 'done != true'
-        - 'frequency != null'
-        - 'due == null'
+    filters: {and: ['done != true', 'frequency != null', 'due == null']}
     order: [file.name, frequency, last done, priority]
   - type: table
     name: Sweep
-    filters:
-      and:
-        - 'done == true'
-        - 'frequency == null'
+    filters: {and: ['done == true', 'frequency == null']}
     order: [file.name, category, last done, created]
 ```
 
-Two filter clauses, both load-bearing:
+Three of these encode decisions rather than taste:
 
-- `type == "task"` is what makes a note a task.
-- `!file.inFolder("Templates")` is not optional. The task template carries
-  `type: task` so template-made notes are real tasks, and without this clause
-  the template lists itself as one. The same trap applies to any other note
-  that happens to use the property.
+- **No `done` clause on the base's own filter.** An earlier version excluded
+  finished tasks, which put a completed note beyond the reach of every query
+  the moment it was finished - tidy to look at, and impossible to clean up.
+  Keeping them in the base is what makes `obsidian-task-grooming`'s sweep
+  possible.
+- **`Needs attention` is a queue, not a schedule** - recurring tasks with no
+  due date, because they have never been completed.
+- **`Sweep`'s `frequency == null` clause is a guard**, not a filter. Without it
+  a recurring task wrongly sitting at `done: true` would appear on a list of
+  things to delete, and deleting it destroys the schedule rather than repairing
+  it.
 
-**There is deliberately no `done` clause on the base's own filter.** An
-earlier version filtered `status != "done"`, which dropped a completed
-one-time task out of the base
-the moment it was finished - tidy to look at, but it also put the note beyond
-the reach of `base:query`, so nothing could ever find it again to clean it up.
-Keeping done tasks in the base is what makes the `obsidian-task-grooming`
-sweep possible.
-
-The formulas do the date arithmetic once, in the vault, so every run reads
-the same numbers instead of recomputing them. The views answer the daily and
-weekly questions directly. Two are queues rather than schedules:
-`Needs attention` holds recurring tasks with no due date because they have
-never been completed, and `Sweep` holds finished one-time tasks waiting to be
-deleted. The `frequency == null` clause on `Sweep` is what keeps a recurring
-task that is wrongly sitting in `done` off the deletion list.
+A base predating plugin 0.4.0 will be missing `Sweep` and the two formula
+columns. Neither breaks anything - grooming filters by hand when the view is
+absent - but adding them is the fix.
 
 ## Writing the file
 
 ```bash
-obsidian create path="tasks/task base.base" content="..."
+obsidian create path="<path>" content="..."
 ```
 
 Pass newlines as literal `\n`. `create` makes missing parent folders on the
-way, so one call builds the whole structure, and the base is queryable
-immediately - no reload.
+way, and the base is queryable immediately - no reload.
 
 ## Gotchas
 
-These fire only while authoring a base. The ones that bite during ordinary
-task work are in `SKILL.md`.
+These fire only while editing a base. The ones that bite during ordinary task
+work are in `SKILL.md`.
 
 - **`obsidian create` needs the `overwrite` flag to replace a file.** Without
   it, pointed at an existing path, it writes `<name> 1.base` alongside the
   original and reports success - and a query against the original path then
   returns the old content, which reads as an edit that did not take. The
   `Created:` line names the path it actually wrote; `Overwrote:` is what a
-  successful replace prints. `obsidian-vault` covers `overwrite` and the rule
-  to confirm before using it, since it replaces the whole file.
-- **A file written to the vault from the shell is not visible to the CLI
-  immediately.** `obsidian read` serves the app's cached copy and can return
-  pre-edit content for a moment after an external write, while `cat` on the
-  same path shows the new bytes. When a read looks stale, confirm against the
-  filesystem before concluding the write failed.
+  successful replace prints. Confirm with the user before overwriting, since it
+  replaces the whole file.
+- **A file written from the shell is not immediately visible to the CLI.**
+  `obsidian read` serves the app's cached copy and can return pre-edit content
+  for a moment after an external write, while `cat` shows the new bytes. When a
+  read looks stale, check the filesystem before concluding the write failed.
 - **Date subtraction yields a Duration, and `.days` is still not an integer.**
   Access `.days` before any number function - `.round()` on a raw Duration
-  fails. Then round it: daylight saving makes a span across a DST boundary
-  120 days *and one hour*, so `(due - today()).days` returns
-  `120.04166666666667`. `(due - today()).days.round(0)` returns `120`.
-- **A formula over an empty property errors on every row that lacks it.**
-  Guard with `if()`: `'if(due, (due - today()).days.round(0), "")'`.
-- **A `formula.X` in a view's `order:` with no matching `formulas:` entry
-  fails silently** - the column simply does not appear, with no error to
-  explain it. A dangling `formula.X` under `sort:` is equally quiet: the live
-  base sorts on a `formula.Untitled` that no `formulas:` block defines, and
-  the remaining sort keys still apply as though it were not there. Neither
-  case reports anything, so a sort that looks configured may not be.
+  fails. Then round it: daylight saving makes a span across a DST boundary 120
+  days *and one hour*, so `(due - today()).days` returns `120.04166666666667`.
+- **A formula over an empty property errors on every row that lacks it.** Guard
+  with `if()`.
+- **A formula no view lists is returned by nothing.** It is computed nowhere
+  and readable nowhere, with no error to say so - which is how
+  `days_until_due` and `overdue` sat unreachable in the generated base until
+  0.4.0. A dangling `formula.X` under `sort:` is equally quiet: the remaining
+  sort keys apply as though it were not there.
 - **`== null` matches an empty property, but an empty *string* is not null.**
-  The template writes `frequency:` with no value, so `frequency == null`
-  correctly selects one-time tasks - a filter looking for the key's absence
-  would match nothing. But `frequency: ""`, which is what
-  `property:set value=""` writes, is **not** null and slips through the
-  filter. Verified on a scratch base against the live vault: a
-  `frequency != null` probe returned all 29 tasks while the one-time notes
-  held `""`, and the correct 11 once they held a bare key. Seed empty keys
-  from the template, never from `property:set`.
+  The template writes a bare `frequency:`, so `frequency == null` correctly
+  selects one-time tasks. `frequency: ""` slips through the filter. The plugin
+  writes bare keys; hand edits and `property:set` do not.
 - **A new property is invisible to `base:query` until a view lists it.**
   Results are keyed by the view's `order:` columns, so a property written to
-  every note still reads back as absent until the base file names it. Update
-  the base before trying to verify a new field.
-- **Test formulas and filters on a scratch base, never the live one.**
-  Create it, query it, delete it. A malformed formula is invisible until a
-  query returns `Error: ...` in the column where a value should be.
+  every note still reads back as absent. Update the base before trying to
+  verify a new field through a query - or read it through `get(path)`, which
+  does not go via the base at all.
+- **Test formulas and filters on a scratch base, never the live one.** Create
+  it, query it, delete it. A malformed formula is invisible until a query
+  returns `Error: ...` in the column where a value should have been.
