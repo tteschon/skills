@@ -19,8 +19,16 @@ but it does not sweep the base; that is this skill's job.
 ## Before you start
 
 `obsidian-vault` covers the CLI itself - preflight, vault targeting, and why
-exit codes cannot be trusted. `obsidian-tasks` covers resolving the task base,
-under "Before you start". Run both; do not re-derive either.
+exit codes cannot be trusted. Run its check; do not re-derive it.
+
+**This skill reads the base directly, while `obsidian-tasks` now reads through
+the Task Base plugin's API.** They agree on what a task is - the plugin mirrors
+the base's filters - but not on how values arrive: `base:query` returns `done`
+as a *string* and drops any formula no view lists, where the API returns real
+booleans and nulls. Keep the `done` test in Gotchas exactly as written. When
+the plugin is present,
+`app.plugins.plugins["task-base"].api.buckets()` returns `stalled` and
+`invalidRule` ready-made - Check B's second row without the query.
 
 ```bash
 command -v obsidian          # exit 1 - stop, not fixable from the shell
@@ -61,7 +69,7 @@ Report them, then offer three outcomes. Never invent a due date:
 |---|---|
 | A date, or a month | `obsidian property:set name=due value="<date>" path="<path>"` |
 | It is a someday item | Leave it, and say plainly that it stays off every dated view |
-| It is no longer wanted | Hand off to `obsidian-tasks` Step 3, which completes and deletes it |
+| It is no longer wanted | Hand off to `obsidian-tasks` Step 3, which completes it and then deletes it |
 
 A **recurring** task with an empty `due` is a different thing and not a defect
 - it is waiting on its first completion, which is exactly what the base's
@@ -75,7 +83,7 @@ reason they can be found and cleared at all.
 | Row | Meaning | Do |
 |---|---|---|
 | `done: true`, `frequency` empty | A finished one-time task | Sweep it - delete after confirmation |
-| `done: true`, `frequency` set | A recurring task that has silently stopped recurring | **Never delete.** Report for `obsidian-tasks` Step 4 roll-forward |
+| `done: true`, `frequency` set | A recurring task that has silently stopped recurring | **Never delete.** Report for `obsidian-tasks` Step 3 roll-forward |
 
 **`frequency` is what keeps a task out of the sweep.** A done row carrying a
 rule is a recurring chore that was marked finished and never rolled
