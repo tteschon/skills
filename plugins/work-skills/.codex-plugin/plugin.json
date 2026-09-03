@@ -1,6 +1,6 @@
 {
   "name": "work-skills",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Productivity and work-focused agent skills",
   "author": {
     "name": "Tyler Teschon",
@@ -9,20 +9,19 @@
   "homepage": "https://github.com/tteschon/skills",
   "repository": "https://github.com/tteschon/skills",
   "license": "MIT",
-  "keywords": ["python", "uv", "tooling", "productivity", "skills", "authoring", "obsidian", "notes", "tasks", "grooming"],
+  "keywords": ["python", "uv", "tooling", "productivity", "skills", "authoring"],
   "skills": "./skills/",
   "interface": {
     "displayName": "Work Skills",
-    "shortDescription": "Python projects, agent skills, and Obsidian vaults",
-    "longDescription": "Create and modernize Python projects with uv, Ruff, pytest, ty, and pre-commit, author agent skills that pass this repository's packaging and Agent Skills validators, and search, read, edit, and run a note-per-task system in Obsidian vaults through the obsidian CLI, including periodic reviews that surface unscheduled work and stale task statuses.",
+    "shortDescription": "Python projects and agent skill authoring",
+    "longDescription": "Create and modernize Python projects with uv, Ruff, pytest, ty, and pre-commit, and author agent skills that pass this repository's packaging and Agent Skills validators - the SKILL.md, the portable, Codex, and Claude Code manifests, and the marketplace entries that keep a plugin installable.",
     "developerName": "Tyler Teschon",
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Write"],
     "websiteURL": "https://github.com/tteschon/skills",
     "defaultPrompt": [
       "Set up a new Python project",
-      "Write a new agent skill for this repo",
-      "What are my top tasks?"
+      "Write a new agent skill for this repo"
     ]
   }
 }

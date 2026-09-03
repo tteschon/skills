@@ -1,0 +1,28 @@
+{
+  "name": "obsidian-skills",
+  "version": "1.0.0",
+  "description": "Agent skills for working in an Obsidian vault",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["obsidian", "notes", "vault", "tasks", "productivity"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Obsidian Skills",
+    "shortDescription": "Read, write, and run tasks in an Obsidian vault",
+    "longDescription": "Search, read, and edit an Obsidian vault through the obsidian CLI - notes, daily notes, frontmatter properties, tags, backlinks, and templates - and run a note-per-task system where each task is its own note, adding tasks, completing them, rolling recurring chores forward, and periodically reviewing the base for work that has gone unscheduled or stale.",
+    "developerName": "Tyler Teschon",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/tteschon/skills",
+    "defaultPrompt": [
+      "What are my top tasks?",
+      "Add mowing the lawn to my tasks",
+      "What did I write about X in my notes?"
+    ]
+  }
+}
