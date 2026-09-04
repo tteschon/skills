@@ -1,0 +1,27 @@
+{
+  "name": "authoring-skills",
+  "version": "5.0.0",
+  "description": "Agent skills for authoring and packaging agent skills",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["skills", "authoring", "plugins", "packaging"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Authoring Skills",
+    "shortDescription": "Author and package agent skills",
+    "longDescription": "Author agent skills that trigger correctly and pass the Agent Skills and Agent Plugins validators, and package them - the SKILL.md and its references, the portable, Codex, and Claude Code manifests, and the marketplace entries that keep a plugin installable.",
+    "developerName": "Tyler Teschon",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/tteschon/skills",
+    "defaultPrompt": [
+      "Write a new agent skill for this repo",
+      "Scaffold a new plugin"
+    ]
+  }
+}

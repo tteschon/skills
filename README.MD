@@ -14,25 +14,28 @@ The skills in this repository follow the open source [agent skills format](http:
 .agents/plugins/marketplace.json       # Codex marketplace
 .claude-plugin/marketplace.json        # Claude Code marketplace
 plugins/
+├── authoring-skills/      # Authoring and packaging agent skills
+│   ├── plugin.json
+│   ├── .codex-plugin/plugin.json
+│   ├── .claude-plugin/plugin.json
+│   └── skills/new-agent-skill/
 ├── fun-skills/            # Fun and creative agent skills
 │   ├── plugin.json
 │   ├── .codex-plugin/plugin.json
 │   ├── .claude-plugin/plugin.json
 │   └── skills/chompsaw-project-designer/
-├── obsidian-skills/       # Agent skills for working in an Obsidian vault
+├── obsidian-skills/       # Working in an Obsidian vault
 │   ├── plugin.json
 │   ├── .codex-plugin/plugin.json
 │   ├── .claude-plugin/plugin.json
 │   └── skills/
 │       ├── obsidian-cli/
 │       └── obsidian-tasks/
-└── work-skills/           # Productivity and work-focused agent skills
+└── python-skills/         # Python projects and their toolchain
     ├── plugin.json
     ├── .codex-plugin/plugin.json
     ├── .claude-plugin/plugin.json
-    └── skills/
-        ├── new-agent-skill/
-        └── new-python-project/
+    └── skills/new-python-project/
 ```
 
 Each plugin keeps a portable Agent Plugins manifest at its root plus native
@@ -49,9 +52,10 @@ codex plugin marketplace add tteschon/skills
 Then install any or all of the plugins:
 
 ```bash
+codex plugin add authoring-skills@tteschon-agent-skills
 codex plugin add fun-skills@tteschon-agent-skills
-codex plugin add work-skills@tteschon-agent-skills
 codex plugin add obsidian-skills@tteschon-agent-skills
+codex plugin add python-skills@tteschon-agent-skills
 ```
 
 Start a new Codex session after installation so the bundled skills are loaded.
@@ -68,25 +72,26 @@ Then, to install a specific set of skills:
 
 1. Select `Browse and install plugins`
 2. Select `tteschon-agent-skills`
-3. Select `fun-skills`, `work-skills`, or `obsidian-skills`
+3. Select the plugin you want
 4. Select `Install now`
 
 Alternatively, directly install a Plugin via:
 
 ```
+/plugin install authoring-skills@tteschon-agent-skills
 /plugin install fun-skills@tteschon-agent-skills
-/plugin install work-skills@tteschon-agent-skills
 /plugin install obsidian-skills@tteschon-agent-skills
+/plugin install python-skills@tteschon-agent-skills
 ```
 
 ## Other agents
 
-`plugins/fun-skills`, `plugins/work-skills`, and `plugins/obsidian-skills` are self-contained [Agent Plugins 1.0](https://agent-plugins.org/specification) packages, so any client that supports the spec can load any of those directories straight from a clone:
+Every directory under `plugins/` is a self-contained [Agent Plugins 1.0](https://agent-plugins.org/specification) package, so any client that supports the spec can load one straight from a clone:
 
 ```
 git clone https://github.com/tteschon/skills
 ```
-Then point your agent at `skills/plugins/work-skills` (or `fun-skills`, or `obsidian-skills`) using its own plugin-install command.
+Then point your agent at `skills/plugins/<plugin>` using its own plugin-install command.
 
 ## Validation
 

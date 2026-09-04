@@ -1,0 +1,27 @@
+{
+  "name": "python-skills",
+  "version": "1.0.0",
+  "description": "Agent skills for Python projects and their toolchain",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["python", "uv", "ruff", "pytest", "tooling"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Python Skills",
+    "shortDescription": "Set up Python projects on the uv toolchain",
+    "longDescription": "Create and modernize Python projects with the uv toolchain - uv for packages and environments, Ruff for lint and format, pytest for tests, ty for type checking, and pre-commit to run them on every commit - including turning a loose script or a pip and requirements.txt project into a proper src-layout package.",
+    "developerName": "Tyler Teschon",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/tteschon/skills",
+    "defaultPrompt": [
+      "Set up a new Python project",
+      "Add ruff and pytest to this project"
+    ]
+  }
+}
