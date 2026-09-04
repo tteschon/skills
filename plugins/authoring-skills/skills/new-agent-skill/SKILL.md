@@ -1,6 +1,6 @@
 ---
 name: new-agent-skill
-description: Authors and maintains the agent skills in this repository - a SKILL.md that triggers correctly and passes all three validators, plus the plugin manifests and marketplace entries that scripts/validate.py enforces. Use this skill when the user wants to write a new skill, add one to any existing plugin such as work-skills or fun-skills, scaffold a new plugin in any category, rename or restructure an existing skill, split a long SKILL.md into references, or fix a failing skills validation or CI run. Also use it when the user mentions SKILL.md, the agent skills format, Agent Plugins, marketplace.json, .codex-plugin, .claude-plugin, or skills.sh packaging, and when they ask how skills in this repo are laid out. Do not use it to invoke an existing skill - only to author, package, or repair one.
+description: Author and package agent skills in this repository - a SKILL.md that triggers correctly, plus the plugin manifests and marketplace entries scripts/validate.py enforces. Use when writing a new skill, scaffolding a plugin, restructuring or splitting a SKILL.md, fixing a failed validation or CI run, or when the user mentions SKILL.md, Agent Plugins, marketplace.json, .codex-plugin, or .claude-plugin. Do NOT use it to invoke an existing skill - only to author or repair one.
 compatibility: Run from a checkout of the skills repository; needs python3 and uv (for uvx) to run the validators.
 ---
 
@@ -24,7 +24,7 @@ questions, use one prompt containing all of them:
 3. **Which plugin** - list `plugins/*/` and offer what is actually there, or
    a new plugin. Never assume the set of plugins from memory; it grows.
 
-**Skip any question the user already answered.** "Add a skill to work-skills
+**Skip any question the user already answered.** "Add a skill to python-skills
 that sets up Terraform modules" answers all three. Asking anyway costs a
 round trip and tells the user you were not reading.
 
@@ -47,6 +47,13 @@ stuff an unrelated skill into the largest existing plugin either.
 This holds for any plugin the repo grows, not just the ones present today.
 The only fixed vocabulary is the Codex `category` bucket a new plugin must
 pick from; `references/packaging.md` lists the current set.
+
+Two splits in this repository's history are worked examples of the judgment
+above, both prompted by exactly that test failing: `obsidian-skills` was cut
+out of `work-skills` when its install-time text had to describe uv, pytest and
+a note-per-task system in one sentence, and `work-skills` itself later became
+`authoring-skills` and `python-skills` for the same reason. Read either split's
+diff before scaffolding a plugin.
 
 Directory name rules, checked by three separate validators: lowercase letters,
 digits and hyphens only, 1-64 chars, no leading, trailing, or doubled hyphen.
@@ -204,13 +211,30 @@ to this repository's validators.
   `version`, `description`, `author`, `homepage`, `repository`, `license`,
   and `keywords` must be identical across the portable, Claude, and Codex
   manifests - including keyword *order*, since the lists are compared
-  directly. Change one, change all three.
+  directly:
+
+  ```json
+  // WRONG - same set, different order, fails the != comparison
+  "keywords": ["uv", "python"]      // plugin.json
+  "keywords": ["python", "uv"]      // .codex-plugin/plugin.json
+
+  // CORRECT - byte-identical in all three
+  "keywords": ["python", "uv"]
+  ```
 - **`interface.category` must equal the Codex marketplace entry's
   `category`,** and both must be one of the Codex buckets listed in
   `scripts/validate.py`. The Claude marketplace's `category` is separate,
   lowercase, and unvalidated - do not copy one into the other.
 - **`skills` in `.codex-plugin/plugin.json` must be exactly `./skills` or
-  `./skills/`.** No other spelling passes, including `skills/`.
+  `./skills/`.** No other spelling passes:
+
+  ```json
+  // WRONG - no leading ./
+  "skills": "skills/"
+
+  // CORRECT
+  "skills": "./skills/"
+  ```
 - **A literal `[TODO:` anywhere in a manifest is an error.** Scaffolding a
   plugin by copying another one and leaving placeholders will fail CI, by
   design. Fill them in before running the validator.
@@ -220,7 +244,7 @@ to this repository's validators.
 - **The portable `plugin.json` schema is closed.** Only the ten fields in
   `PORTABLE_MANIFEST_FIELDS` are permitted, and `$schema` must be exactly the
   1.0.0 plugin schema URL. Extra keys go in `extensions`, not at the top level.
-- **Skill names are namespaced per plugin (`work-skills:foo`), but the
+- **Skill names are namespaced per plugin (`python-skills:foo`), but the
   descriptions all compete in one list.** Two skills in different plugins can
   share a name without failing validation and still confuse every agent that
   loads both. Check for a name or trigger collision across the whole repo,

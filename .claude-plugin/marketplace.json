@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A collection of reusable AI agent skills",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "plugins": [
     {
@@ -14,8 +14,13 @@
       "category": "creative"
     },
     {
-      "name": "work-skills",
-      "source": "./plugins/work-skills",
+      "name": "authoring-skills",
+      "source": "./plugins/authoring-skills",
+      "category": "development"
+    },
+    {
+      "name": "python-skills",
+      "source": "./plugins/python-skills",
       "category": "development"
     },
     {
