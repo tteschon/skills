@@ -1,6 +1,6 @@
 > **Note:** This is a public repository to share some of my AI agent skills.
 
-[![Install the tteschon skills pack from skills.sh](https://img.shields.io/badge/skills.sh-install%20pack-000000?logo=vercel&logoColor=white)](https://www.skills.sh/p/N36ByBeYUvsBOMNy)
+[![Install the tteschon skills pack from skills.sh](https://img.shields.io/badge/skills.sh-install%20pack-000000?logo=vercel&logoColor=white)](https://www.skills.sh/p/k9F32rDgRDOqfsd3)
 
 # Skills
 
