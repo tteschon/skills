@@ -128,6 +128,10 @@ to the user -- it is stable and parseable, the tables are not.
 
 ## Reading the input file
 
+No log yet - only a CRM, a ticket tracker, pull requests, or a spreadsheet
+of status dates? Build one with the `build-event-log` skill first; it ends
+with a CSV that needs none of the flags below.
+
 `.xes` and `.xes.gz` need no flags. Anything else is read as delimited text
 and needs its three columns mapped:
 

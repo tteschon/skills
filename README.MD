@@ -36,7 +36,9 @@ plugins/
 │   ├── .codex-plugin/plugin.json
 │   ├── .claude-plugin/plugin.json
 │   ├── TESTING.md
-│   └── skills/pmx-process-mining/
+│   └── skills/
+│       ├── build-event-log/
+│       └── pmx-process-mining/
 └── python-skills/         # Python projects and their toolchain
     ├── plugin.json
     ├── .codex-plugin/plugin.json
