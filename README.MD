@@ -31,6 +31,12 @@ plugins/
 │   └── skills/
 │       ├── obsidian-cli/
 │       └── obsidian-tasks/
+├── process-mining/        # Process mining event logs with the pmx CLI
+│   ├── plugin.json
+│   ├── .codex-plugin/plugin.json
+│   ├── .claude-plugin/plugin.json
+│   ├── TESTING.md
+│   └── skills/pmx-process-mining/
 └── python-skills/         # Python projects and their toolchain
     ├── plugin.json
     ├── .codex-plugin/plugin.json
@@ -55,6 +61,7 @@ Then install any or all of the plugins:
 codex plugin add authoring-skills@tteschon-agent-skills
 codex plugin add fun-skills@tteschon-agent-skills
 codex plugin add obsidian-skills@tteschon-agent-skills
+codex plugin add process-mining@tteschon-agent-skills
 codex plugin add python-skills@tteschon-agent-skills
 ```
 
@@ -81,6 +88,7 @@ Alternatively, directly install a Plugin via:
 /plugin install authoring-skills@tteschon-agent-skills
 /plugin install fun-skills@tteschon-agent-skills
 /plugin install obsidian-skills@tteschon-agent-skills
+/plugin install process-mining@tteschon-agent-skills
 /plugin install python-skills@tteschon-agent-skills
 ```
 

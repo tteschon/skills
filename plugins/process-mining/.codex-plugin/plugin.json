@@ -1,0 +1,28 @@
+{
+  "name": "process-mining",
+  "version": "1.0.0",
+  "description": "Agent skills for process mining event logs with the pmx CLI",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["process-mining", "event-log", "pm4py", "bpmn", "petri-net"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Process Mining",
+    "shortDescription": "Profile event logs and mine process models with pmx",
+    "longDescription": "Turn an event log - XES, gzipped XES, or a CSV of case, activity and timestamp rows - into an answer about how the process actually runs, using the pmx CLI over pm4py: case, activity and variant counts, case durations, the most common paths and how concentrated they are, exact directly-follows counts, and a mined Petri net or BPMN model rendered as an image, filtered to the frequent variants when the full model is unreadable, plus object-centric logs that have no single case id.",
+    "developerName": "Tyler Teschon",
+    "category": "Data & Analytics",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/tteschon/skills",
+    "defaultPrompt": [
+      "What does the process in this event log look like?",
+      "What are the most common paths through this log?",
+      "Mine a BPMN model from this log"
+    ]
+  }
+}
