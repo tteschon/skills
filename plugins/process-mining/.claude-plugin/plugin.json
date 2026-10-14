@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "process-mining",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Agent skills for process mining event logs with the pmx CLI",
   "author": {
     "name": "Tyler Teschon",
