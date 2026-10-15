@@ -115,3 +115,36 @@ that model fits the log -- that is conformance checking, which this CLI does
 not do. Never describe a discovered model as "accurate", "validated", or
 "87% conformant". The defensible statement is that the model was mined from
 the log with a named algorithm at a named threshold.
+
+## No shared path
+
+When nearly every case takes its own route, a mined model is a "flower" -
+any activity, in any order - and `--top-variants` cannot rescue it, because
+each variant covers a single case. Drawing that model presents structure the
+data does not have. Do not run `discover`; say plainly that the cases share
+no common path, then test whether anything is ordered at all:
+
+```bash
+pmx dfg LOG --json | python3 -c '
+import json, sys
+from collections import Counter
+edges = json.load(sys.stdin)["edges"]
+total = sum(e["count"] for e in edges)
+out, into = Counter(), Counter()
+for e in edges:
+    out[e["from"]] += e["count"]
+    into[e["to"]] += e["count"]
+for e in edges:
+    e["lift"] = e["count"] * total / (out[e["from"]] * into[e["to"]])
+common = [e for e in edges if e["count"] >= 20]
+for e in sorted(common, key=lambda e: -e["lift"])[:10]:
+    print(round(e["lift"], 1), e["from"], "->", e["to"], e["count"])
+'
+```
+
+Lift is how many times more often B follows A than it would if the next
+step were independent of the current one. Lifts near 1 across the board
+mean the order is random - report that, with the most frequent activities
+and start activities from `inspect`, as the finding. A lift of 2 or more on
+a large count is a real follow-on worth naming even inside an unstructured
+log.
