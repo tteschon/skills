@@ -42,6 +42,31 @@ from now on.
 - Sandboxes and demo orgs often load every history row in one batch - every
   row shares one `CreatedDate`. That is the check script's first FAIL.
 
+When every history source is empty or load-stamped, look at the records'
+own date fields - `Case.CreatedDate` and `ClosedDate`, or a date on a custom
+object, such as when a booked session takes place. That is the wide shape
+(see Spreadsheets). Check that the dates vary before building anything; one
+or two distinct values is a load time again:
+
+```sql
+SELECT COUNT(Id) n, COUNT_DISTINCT(CreatedDate) created FROM Case
+```
+
+Pulling the rows:
+
+- Through a connector, a result over its size limit is saved to a file and
+  only the path comes back. Page by `Id` - `WHERE Id > '<last Id of the
+  previous page>' ORDER BY Id LIMIT 2000` - and read each file with code.
+  Never paste thousands of rows into the conversation. `OFFSET` stops at
+  2,000, so it cannot page past that.
+- A `time` field has no zone; the API appends `Z` to every value anyway.
+  Combined with a date it is local wall-clock time: write it with the same
+  offset on every row so the order holds, and say in the report that the
+  times are local, not UTC.
+- SOQL rejects what other SQL accepts: `first` and `last` as aliases
+  (reserved), `COUNT()` on a `time` field, `GROUP BY` on a formula field,
+  and a subquery on the same object as the outer query.
+
 ## Jira
 
 - `GET /rest/api/3/search/jql?jql=<JQL>&fields=created` lists the issues
@@ -94,7 +119,9 @@ The timeline is a mixed bag, and the timestamp field differs by event:
 | `ready_for_review` | `Ready for review` | `created_at` |
 | `review_requested` | `Review requested` | `created_at` |
 | `reviewed` | `Review: <state>` (`approved`, `changes_requested`, `commented`) | `submitted_at` |
-| `committed` | `Commit pushed` | `committer.date` |
+| `committed` | `Commit` | `committer.date` |
+| `commented` | `Comment` | `created_at` |
+| `head_ref_force_pushed` | `Force-pushed` | `created_at` |
 | `merged` / `closed` / `reopened` | `Merged` / `Closed` / `Reopened` | `created_at` |
 
 ```python
@@ -111,6 +138,14 @@ Skip `labeled`, `mentioned`, `cross-referenced`, `head_ref_deleted` and the
 like unless the question is about them - they are noise in a review process.
 A merged PR also gets a `closed` event at the same instant; drop the `closed`
 when a `merged` exists, or every merged PR ends in a tie.
+
+`committer.date` is when a commit was made, not when it was pushed, and most
+branches carry their work into the PR. Drop commits dated before the PR was
+opened - on one real repository that was 14 of 18 - or nearly every PR
+appears to start with a commit. The commits that remain are follow-ups
+pushed during review. In a repository without reviewers, comments and
+force-pushes are the only sign of anything happening between open and
+merge; keep them.
 
 ## Claude Code sessions
 

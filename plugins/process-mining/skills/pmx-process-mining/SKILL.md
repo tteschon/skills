@@ -64,14 +64,19 @@ Always `inspect` before `discover`. The profile tells you whether the log is
 even well-formed, and the variant count predicts whether the model will be
 readable.
 
-1. **Inspect.** `pmx inspect LOG` -- confirm the counts look sane. A log where
-   cases ≈ events means one event per case and nothing to mine. A log with
-   one variant is a straight line.
+1. **Inspect.** `pmx inspect LOG` -- confirm there is a process to find:
+
+   | Profile | Meaning | Do |
+   |---|---|---|
+   | cases ≈ events | One event per case | Stop - nothing to mine; rebuild the log with `build-event-log` |
+   | one variant | Every case is identical | Report the path; no model needed |
+   | covering 80% of cases takes more variants than half the cases | Almost every case is unique - no shared path | Do not mine; go to [No shared path](#no-shared-path) |
+   | anything else | A process with common paths | Continue |
 2. **Report what you found** before mining: the four headline counts, the time
    span, case durations, and the top variants. State the variant count and the
    concentration line (`N variants cover 80% of cases`) explicitly -- they are
    what justify the filter you pick in step 4.
-3. **Discover, and render.**
+3. **Discover, and render** - unless step 1 found no shared path.
 
    ```bash
    pmx discover LOG -o model.bpmn --notation bpmn -i model.png
@@ -98,6 +103,16 @@ readable.
    prints this on stderr; pass it on. A filtered model is a claim about
    frequent behaviour, not about the process. See
    [references/interpreting.md](references/interpreting.md).
+
+## No shared path
+
+When nearly every case takes its own route, a mined model is a "flower" -
+any activity, in any order - and `--top-variants` cannot rescue it, because
+each variant covers a single case. Do not run `discover`. Say plainly that
+the cases share no common path, then read the "No shared path" section of
+[references/interpreting.md](references/interpreting.md) and run its lift
+check: it tells a log with a few real follow-on steps apart from one whose
+order is random, which is the actual finding to report.
 
 ## Commands
 
