@@ -63,6 +63,18 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Data & Analytics"
+    },
+    {
+      "name": "agent-performance",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agent-performance"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
     }
   ]
 }

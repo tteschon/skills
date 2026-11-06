@@ -14,6 +14,13 @@ The skills in this repository follow the open source [agent skills format](http:
 .agents/plugins/marketplace.json       # Codex marketplace
 .claude-plugin/marketplace.json        # Claude Code marketplace
 plugins/
+├── agent-performance/     # What Claude Code agents cost, and how they perform
+│   ├── plugin.json
+│   ├── .codex-plugin/plugin.json
+│   ├── .claude-plugin/plugin.json
+│   ├── TESTING.md
+│   ├── tests/
+│   └── skills/agent-cost/
 ├── authoring-skills/      # Authoring and packaging agent skills
 │   ├── plugin.json
 │   ├── .codex-plugin/plugin.json
@@ -60,6 +67,7 @@ codex plugin marketplace add tteschon/skills
 Then install any or all of the plugins:
 
 ```bash
+codex plugin add agent-performance@tteschon-agent-skills
 codex plugin add authoring-skills@tteschon-agent-skills
 codex plugin add fun-skills@tteschon-agent-skills
 codex plugin add obsidian-skills@tteschon-agent-skills
@@ -87,6 +95,7 @@ Then, to install a specific set of skills:
 Alternatively, directly install a Plugin via:
 
 ```
+/plugin install agent-performance@tteschon-agent-skills
 /plugin install authoring-skills@tteschon-agent-skills
 /plugin install fun-skills@tteschon-agent-skills
 /plugin install obsidian-skills@tteschon-agent-skills
