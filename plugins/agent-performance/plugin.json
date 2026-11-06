@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agent-performance",
+  "version": "1.0.0",
+  "description": "Agent skills for measuring how Claude Code agents perform, starting with what they cost",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["claude-code", "agent-performance", "cost", "opentelemetry"]
+}

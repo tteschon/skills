@@ -1,0 +1,24 @@
+{
+  "name": "agent-performance",
+  "version": "1.0.0",
+  "description": "Agent skills for measuring how Claude Code agents perform, starting with what they cost",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["claude-code", "agent-performance", "cost", "opentelemetry"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Performance",
+    "shortDescription": "See what Claude Code work costs, and why",
+    "longDescription": "Report what Claude Code sessions cost at API list prices, from session transcripts or OpenTelemetry logs: spend by model, project, skill, tool and token type, how concentrated it is in a few long turns, what another model would have cost, and which changes are most likely to reduce it. Reads token counts only, and stays on your machine.",
+    "developerName": "Tyler Teschon",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/tteschon/skills",
+    "defaultPrompt": ["What are my Claude Code sessions costing, and why?", "Which of my skills and tools are the most expensive?", "What would my usage cost on Opus 5.5?"]
+  }
+}
