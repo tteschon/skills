@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "weather",
+  "version": "1.0.0",
+  "description": "Agent skills for US weather from the National Weather Service - forecasts, current conditions, alerts and day planning",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["weather", "forecast", "national-weather-service", "alerts"]
+}

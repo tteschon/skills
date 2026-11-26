@@ -1,0 +1,69 @@
+{
+ "id": "https://api.weather.gov/points/39.7456,-97.0892",
+ "type": "Feature",
+ "geometry": {
+  "type": "Point",
+  "coordinates": [
+   -97.0892,
+   39.7456
+  ]
+ },
+ "properties": {
+  "@id": "https://api.weather.gov/points/39.7456,-97.0892",
+  "@type": "wx:Point",
+  "cwa": "TOP",
+  "type": "land",
+  "forecastOffice": "https://api.weather.gov/offices/TOP",
+  "gridId": "TOP",
+  "gridX": 32,
+  "gridY": 81,
+  "forecast": "https://api.weather.gov/gridpoints/TOP/32,81/forecast",
+  "forecastHourly": "https://api.weather.gov/gridpoints/TOP/32,81/forecast/hourly",
+  "forecastGridData": "https://api.weather.gov/gridpoints/TOP/32,81",
+  "observationStations": "https://api.weather.gov/gridpoints/TOP/32,81/stations",
+  "relativeLocation": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -97.0867936,
+     39.6792898
+    ]
+   },
+   "properties": {
+    "city": "Linn",
+    "state": "KS",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 6745.3279758024
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 358
+    }
+   }
+  },
+  "forecastZone": "https://api.weather.gov/zones/forecast/KSZ009",
+  "county": "https://api.weather.gov/zones/county/KSC201",
+  "fireWeatherZone": "https://api.weather.gov/zones/fire/KSZ009",
+  "timeZone": "America/Chicago",
+  "radarStation": "KTWX",
+  "astronomicalData": {
+   "sunrise": "2026-11-25T07:24:17-06:00",
+   "sunset": "2026-11-25T17:06:32-06:00",
+   "transit": "2026-11-25T12:15:24-06:00",
+   "civilTwilightBegin": "2026-11-25T06:54:51-06:00",
+   "civilTwilightEnd": "2026-11-25T17:35:58-06:00",
+   "nauticalTwilightBegin": "2026-11-25T06:21:41-06:00",
+   "nauticalTwilightEnd": "2026-11-25T18:09:08-06:00",
+   "astronomicalTwilightBegin": "2026-11-25T05:49:22-06:00",
+   "astronomicalTwilightEnd": "2026-11-25T18:41:26-06:00"
+  },
+  "nwr": {
+   "transmitter": "KZZ67",
+   "sameCode": "020201",
+   "areaBroadcast": "https://api.weather.gov/radio/KZZ67/broadcast",
+   "pointBroadcast": "https://api.weather.gov/points/39.7456,-97.0892/radio"
+  }
+ }
+}

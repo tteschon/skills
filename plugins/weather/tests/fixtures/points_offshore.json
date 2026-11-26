@@ -1,0 +1,67 @@
+{
+ "id": "https://api.weather.gov/points/38.5,-72",
+ "type": "Feature",
+ "geometry": {
+  "type": "Point",
+  "coordinates": [
+   -72,
+   38.5
+  ]
+ },
+ "properties": {
+  "@id": "https://api.weather.gov/points/38.5,-72",
+  "@type": "wx:Point",
+  "cwa": "ONA",
+  "type": "marine",
+  "forecastOffice": "https://api.weather.gov/offices/ONA",
+  "gridId": null,
+  "gridX": null,
+  "gridY": null,
+  "forecast": null,
+  "forecastHourly": null,
+  "forecastGridData": null,
+  "observationStations": null,
+  "relativeLocation": {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -74.251791,
+     39.5760308
+    ]
+   },
+   "properties": {
+    "city": "Beach Haven",
+    "state": "NJ",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 226513.59151826
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 120
+    }
+   }
+  },
+  "forecastZone": "https://api.weather.gov/zones/forecast/ANZ920",
+  "timeZone": "America/New_York",
+  "radarStation": "KDIX",
+  "astronomicalData": {
+   "sunrise": "2026-11-26T06:41:40-05:00",
+   "sunset": "2026-11-26T16:29:01-05:00",
+   "transit": "2026-11-26T11:35:20-05:00",
+   "civilTwilightBegin": "2026-11-26T06:12:47-05:00",
+   "civilTwilightEnd": "2026-11-26T16:57:54-05:00",
+   "nauticalTwilightBegin": "2026-11-26T05:40:11-05:00",
+   "nauticalTwilightEnd": "2026-11-26T17:30:30-05:00",
+   "astronomicalTwilightBegin": "2026-11-26T05:08:24-05:00",
+   "astronomicalTwilightEnd": "2026-11-26T18:02:17-05:00"
+  },
+  "nwr": {
+   "transmitter": null,
+   "sameCode": null,
+   "areaBroadcast": null,
+   "pointBroadcast": "https://api.weather.gov/points/38.5,-72/radio"
+  }
+ }
+}

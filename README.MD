@@ -46,11 +46,18 @@ plugins/
 │   └── skills/
 │       ├── build-event-log/
 │       └── pmx-process-mining/
-└── python-skills/         # Python projects and their toolchain
+├── python-skills/         # Python projects and their toolchain
+│   ├── plugin.json
+│   ├── .codex-plugin/plugin.json
+│   ├── .claude-plugin/plugin.json
+│   └── skills/new-python-project/
+└── weather/               # US weather from the National Weather Service
     ├── plugin.json
     ├── .codex-plugin/plugin.json
     ├── .claude-plugin/plugin.json
-    └── skills/new-python-project/
+    ├── TESTING.md
+    ├── tests/
+    └── skills/us-weather/
 ```
 
 Each plugin keeps a portable Agent Plugins manifest at its root plus native
@@ -73,6 +80,7 @@ codex plugin add fun-skills@tteschon-agent-skills
 codex plugin add obsidian-skills@tteschon-agent-skills
 codex plugin add process-mining@tteschon-agent-skills
 codex plugin add python-skills@tteschon-agent-skills
+codex plugin add weather@tteschon-agent-skills
 ```
 
 Start a new Codex session after installation so the bundled skills are loaded.
@@ -101,6 +109,7 @@ Alternatively, directly install a Plugin via:
 /plugin install obsidian-skills@tteschon-agent-skills
 /plugin install process-mining@tteschon-agent-skills
 /plugin install python-skills@tteschon-agent-skills
+/plugin install weather@tteschon-agent-skills
 ```
 
 ## Other agents

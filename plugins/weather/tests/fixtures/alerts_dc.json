@@ -1,0 +1,240 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d48f29a4fa7b5630f3165279f0c6ecac61ad3571.005.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d48f29a4fa7b5630f3165279f0c6ecac61ad3571.005.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.d48f29a4fa7b5630f3165279f0c6ecac61ad3571.005.1",
+    "areaDesc": "District of Columbia; Arlington/Falls Church/Alexandria",
+    "geocode": {},
+    "affectedZones": [],
+    "references": [
+     {
+      "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.960b855f6c9be5c661263eb55897713d2369e29b.004.2",
+      "identifier": "urn:oid:2.49.0.1.840.0.960b855f6c9be5c661263eb55897713d2369e29b.004.2",
+      "sender": "w-nws.webmaster@noaa.gov",
+      "sent": "2026-11-25T14:38:00-05:00"
+     },
+     {
+      "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.93af67a6b48400767071393f670a25f948ba8ffc.004.1",
+      "identifier": "urn:oid:2.49.0.1.840.0.93af67a6b48400767071393f670a25f948ba8ffc.004.1",
+      "sender": "w-nws.webmaster@noaa.gov",
+      "sent": "2026-11-25T16:42:00-05:00"
+     }
+    ],
+    "sent": "2026-11-25T21:12:00-05:00",
+    "effective": "2026-11-25T21:12:00-05:00",
+    "onset": "2026-11-26T15:00:00-05:00",
+    "expires": "2026-11-26T05:30:00-05:00",
+    "ends": "2026-11-27T03:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Coastal Flood Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Baltimore MD/Washington DC",
+    "headline": "Coastal Flood Warning issued November 25 at 9:12PM EST until November 27 at 3:00AM EST by NWS Baltimore MD/Washington DC",
+    "description": "* WHAT...One to two feet of inundation above ground level\nexpected in low lying areas due to tidal flooding.\n\n* WHERE...Shoreline in the District of Columbia, Arlington\nCounty, and the City of Alexandria.\n\n* WHEN...From 3 PM Thursday to 3 AM EST Friday, especially\naround the time of high tide.\n\n* IMPACTS...Flooding is expected at the DC seafood market and in\nportions of East Potomac Park. Water is expected to cover the\nboardwalk at Washington Harbour. An increasing number of\nstreets and parks are flooded in Alexandria. Access to\nDaingerfield Island is cut off.\n\n* ADDITIONAL DETAILS...Tides up to 4 feet above normal. The next\nhigh tide at Alexandria is at 9:06 AM and 9:18 PM. The next high\ntide at Washington Channel is at 8:48 AM and 9:00 PM.",
+    "instruction": "Take the necessary actions to protect flood-prone property. If\ntravel is required, do not drive around barricades or through\nwater of unknown depth.",
+    "response": "Avoid",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "CFWLWX"
+     ],
+     "WMOidentifier": [
+      "WHUS41 KLWX 260212"
+     ],
+     "NWSheadline": [
+      "COASTAL FLOOD WARNING REMAINS IN EFFECT FROM 3 PM THURSDAY TO 3 AM EST FRIDAY"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.CON.KLWX.CF.W.0004.261126T2000Z-261127T0800Z/"
+     ],
+     "eventEndingTime": [
+      "2026-11-27T03:00:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "CFW"
+     ],
+     "NationalWeatherService": [
+      "CFW"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.58cd7f7e3ff093fffa4d87f43f7efdcee670c049.007.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.58cd7f7e3ff093fffa4d87f43f7efdcee670c049.007.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.58cd7f7e3ff093fffa4d87f43f7efdcee670c049.007.1",
+    "areaDesc": "District of Columbia; Washington; Frederick; Carroll; Northern Baltimore; Prince Georges; Central and Eastern Allegany; Northwest Montgomery; Central and Southeast Montgomery; Northwest Howard; Central and Southeast Howard; Northwest Harford; Frederick; Clarke; Fairfax; Arlington/Falls Church/Alexandria; Northern Fauquier; Western Loudoun; Eastern Loudoun; Northwest Prince William; Hampshire; Morgan; Berkeley; Jefferson; Eastern Mineral",
+    "geocode": {},
+    "affectedZones": [],
+    "references": [
+     {
+      "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.7104efbb14c87a91d1cda8bcfcaa0723e32b43ac.007.1",
+      "identifier": "urn:oid:2.49.0.1.840.0.7104efbb14c87a91d1cda8bcfcaa0723e32b43ac.007.1",
+      "sender": "w-nws.webmaster@noaa.gov",
+      "sent": "2026-11-25T13:23:00-05:00"
+     }
+    ],
+    "sent": "2026-11-25T20:22:00-05:00",
+    "effective": "2026-11-25T20:22:00-05:00",
+    "onset": "2026-11-26T04:00:00-05:00",
+    "expires": "2026-11-26T05:00:00-05:00",
+    "ends": "2026-11-26T19:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Moderate",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Wind Advisory",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Baltimore MD/Washington DC",
+    "headline": "Wind Advisory issued November 25 at 8:22PM EST until November 26 at 7:00PM EST by NWS Baltimore MD/Washington DC",
+    "description": "* WHAT...East to northeast winds 20 to 30 mph with gusts around 55\nmph expected.\n\n* WHERE...District of Columbia as well as the Washington and\nBaltimore Metropolitan areas into north-central Maryland, northern\nVirginia as well as the northern Shenandoah Valley, the eastern\nPanhandle of West Virginia as well as portions of the Potomac\nHighlands in West Virginia.\n\n* WHEN...From 4 AM to 7 PM EST Thursday.\n\n* IMPACTS...Gusty winds will blow around unsecured objects. Trees\ncould be blown down and a few power outages may result.\n\n* ADDITIONAL DETAILS...Anyone travelling Thursday should pay close\nattention to the latest conditions. Downed trees combined with\nheavy rain may make travel dangerous at times.",
+    "instruction": "Winds this strong can make driving difficult, especially for high\nprofile vehicles. Use extra caution.",
+    "response": "Execute",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "NPWLWX"
+     ],
+     "WMOidentifier": [
+      "WWUS71 KLWX 260122"
+     ],
+     "NWSheadline": [
+      "WIND ADVISORY REMAINS IN EFFECT FROM 4 AM TO 7 PM EST THURSDAY"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "VTEC": [
+      "/O.CON.KLWX.WI.Y.0015.261126T0900Z-261127T0000Z/"
+     ],
+     "eventEndingTime": [
+      "2026-11-26T19:00:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.08642b9c93a8a194edb62fb0b57501e8363e2b82.007.1,2026-11-25T10:28:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.7992d2aa829e15b0430fa04b4c535ac89761d013.006.1,2026-11-25T10:09:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.7c642e01a9869bbfeee66c8d4100ffe657f08d5d.005.1,2026-11-25T01:48:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "NWS"
+     ],
+     "NationalWeatherService": [
+      "WIY"
+     ]
+    }
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.960b855f6c9be5c661263eb55897713d2369e29b.004.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.960b855f6c9be5c661263eb55897713d2369e29b.004.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.960b855f6c9be5c661263eb55897713d2369e29b.004.1",
+    "areaDesc": "District of Columbia; Arlington/Falls Church/Alexandria",
+    "geocode": {},
+    "affectedZones": [],
+    "references": [],
+    "sent": "2026-11-25T14:38:00-05:00",
+    "effective": "2026-11-25T14:38:00-05:00",
+    "onset": "2026-11-26T15:00:00-05:00",
+    "expires": "2026-11-25T14:53:30-05:00",
+    "ends": "2026-11-27T03:00:00-05:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "category": "Met",
+    "severity": "Moderate",
+    "certainty": "Observed",
+    "urgency": "Past",
+    "event": "Coastal Flood Watch",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Baltimore MD/Washington DC",
+    "headline": "The Coastal Flood Watch has been replaced. Please see the latest information from NWS Baltimore MD/Washington DC on this developing situation.",
+    "description": "The Coastal Flood Watch has been replaced. Please see the latest information from NWS Baltimore MD/Washington DC on this developing situation.",
+    "instruction": "Take the necessary actions to protect flood-prone property. If\ntravel is required, do not drive around barricades or through\nwater of unknown depth.",
+    "response": "Monitor",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "CFWLWX"
+     ],
+     "WMOidentifier": [
+      "WHUS41 KLWX 251938"
+     ],
+     "NWSheadline": [
+      "COASTAL FLOOD WARNING IN EFFECT FROM 3 PM THURSDAY TO 3 AM EST FRIDAY"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.UPG.KLWX.CF.A.0006.261126T2000Z-261127T0800Z/"
+     ],
+     "eventEndingTime": [
+      "2026-11-27T03:00:00-05:00"
+     ],
+     "expiredReferences": [
+      "w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.806530fdc3b84cc94677e8ac4576b523c4b5030b.005.1,2026-11-25T05:12:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.100446236bf61d2eb62a422e6dc16368d93aa728.004.1,2026-11-24T20:59:00-05:00 w-nws.webmaster@noaa.gov,urn:oid:2.49.0.1.840.0.cb5b3566202ba27d78d9cf0abc720aeaf150590c.001.1,2026-11-24T12:20:00-05:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "CFA"
+     ],
+     "NationalWeatherService": [
+      "CFA"
+     ]
+    }
+   }
+  }
+ ],
+ "title": "Current watches, warnings, and advisories for 38.8987 N, 77.0352 W",
+ "updated": "2026-11-26T03:16:42+00:00"
+}

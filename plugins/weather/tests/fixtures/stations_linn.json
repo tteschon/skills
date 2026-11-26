@@ -1,0 +1,97 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "id": "https://api.weather.gov/stations/KMYZ",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/stations/KMYZ",
+    "@type": "wx:ObservationStation",
+    "elevation": {
+     "unitCode": "wmoUnit:m",
+     "value": 391.0584
+    },
+    "stationIdentifier": "KMYZ",
+    "name": "Marysville Municipal Airport",
+    "timeZone": "America/Chicago",
+    "provider": "OTHER-MTR",
+    "subProvider": "",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 41130.730654414
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 74
+    },
+    "forecast": "https://api.weather.gov/zones/forecast/KSZ010",
+    "county": "https://api.weather.gov/zones/county/KSC117",
+    "fireWeatherZone": "https://api.weather.gov/zones/fire/KSZ010"
+   }
+  },
+  {
+   "id": "https://api.weather.gov/stations/KCNK",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/stations/KCNK",
+    "@type": "wx:ObservationStation",
+    "elevation": {
+     "unitCode": "wmoUnit:m",
+     "value": 452.9328
+    },
+    "stationIdentifier": "KCNK",
+    "name": "Concordia, Blosser Municipal Airport",
+    "timeZone": "America/Chicago",
+    "provider": "ASOS-HFM",
+    "subProvider": "",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 52767.284940988
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 244
+    },
+    "forecast": "https://api.weather.gov/zones/forecast/KSZ020",
+    "county": "https://api.weather.gov/zones/county/KSC029",
+    "fireWeatherZone": "https://api.weather.gov/zones/fire/KSZ020"
+   }
+  },
+  {
+   "id": "https://api.weather.gov/stations/KHJH",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "@id": "https://api.weather.gov/stations/KHJH",
+    "@type": "wx:ObservationStation",
+    "elevation": {
+     "unitCode": "wmoUnit:m",
+     "value": 447.1416
+    },
+    "stationIdentifier": "KHJH",
+    "name": "Hebron, Hebron Municipal Airport",
+    "timeZone": "America/Chicago",
+    "provider": "OTHER-MTR",
+    "subProvider": "",
+    "distance": {
+     "unitCode": "wmoUnit:m",
+     "value": 60859.001083117
+    },
+    "bearing": {
+     "unitCode": "wmoUnit:degree_(angle)",
+     "value": 316
+    },
+    "forecast": "https://api.weather.gov/zones/forecast/NEZ087",
+    "county": "https://api.weather.gov/zones/county/NEC169",
+    "fireWeatherZone": "https://api.weather.gov/zones/fire/NEZ087"
+   }
+  }
+ ],
+ "observationStations": [
+  "https://api.weather.gov/stations/KMYZ",
+  "https://api.weather.gov/stations/KCNK",
+  "https://api.weather.gov/stations/KHJH"
+ ]
+}

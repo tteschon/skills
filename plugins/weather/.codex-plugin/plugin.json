@@ -1,0 +1,24 @@
+{
+  "name": "weather",
+  "version": "1.0.0",
+  "description": "Agent skills for US weather from the National Weather Service - forecasts, current conditions, alerts and day planning",
+  "author": {
+    "name": "Tyler Teschon",
+    "url": "https://github.com/tteschon"
+  },
+  "homepage": "https://github.com/tteschon/skills",
+  "repository": "https://github.com/tteschon/skills",
+  "license": "MIT",
+  "keywords": ["weather", "forecast", "national-weather-service", "alerts"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Weather",
+    "shortDescription": "US forecasts, conditions and alerts from the NWS",
+    "longDescription": "Answer weather questions about US places from the National Weather Service API: current conditions from the nearest station, the 7-day and hourly forecast, watches and warnings in effect, and an hour-by-hour look at one day with rain, snow and gust totals for deciding whether a plan works. Free and keyless; covers the United States and its territories only.",
+    "developerName": "Tyler Teschon",
+    "category": "Productivity",
+    "capabilities": ["Interactive"],
+    "websiteURL": "https://github.com/tteschon/skills",
+    "defaultPrompt": ["What's the weather in Denver this week?", "Is Saturday dry enough to stain the deck?", "Are there any weather warnings for Tampa right now?"]
+  }
+}
